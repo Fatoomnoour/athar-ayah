@@ -1,0 +1,6 @@
+{
+  "name": "أثر آية",
+  "description": "تطبيق متكامل لتدبر القرآن الكريم، تدوين الملاحظات الإيمانية، تتبع القراءة والحفظ، وبناء خطط الحفظ والاستذكار.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
