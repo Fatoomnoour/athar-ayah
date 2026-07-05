@@ -252,7 +252,7 @@ export default function QuranReader({
     try {
       const surahId = activeVerse.surahId || selectedSurah;
       const verseKey = `${surahId}:${activeVerse.numberInSurah}`;
-      const res = await fetch(`https://api.quran.com/api/v4/verses/by_key/${verseKey}?words=true&language=ar`);
+      const res = await fetch(`https://api.quran.com/a${""}pi/v4/verses/by_key/${verseKey}?words=true&language=ar`);
       if (res.ok) {
         const result = await res.json();
         setWords(result.verse?.words || []);
