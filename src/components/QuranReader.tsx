@@ -883,7 +883,7 @@ export default function QuranReader({
                       <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">
                         ترتيبها: {selectedSurah} • الجزء {selectedJuz}
                       </div>
-                      <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white drop-shadow-xs">
+                      <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-inherit drop-shadow-xs">
                         سورة {SURAH_LIST[selectedSurah - 1]?.name}
                       </h1>
                       <div className="flex items-center justify-center gap-3 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">
@@ -901,7 +901,7 @@ export default function QuranReader({
                       <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                         تلاوة مباركة • الجزء {selectedJuz}
                       </div>
-                      <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                      <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-inherit">
                         الصفحة {selectedPage} من المصحف الشريف
                       </h1>
                     </>
@@ -911,7 +911,7 @@ export default function QuranReader({
 
               {/* Bismillah Banner if not Tawbah and Fatiha */}
               {selectionType === "surah" && selectedSurah !== 1 && selectedSurah !== 9 && (
-                <div className="text-3xl sm:text-4xl font-serif text-slate-900 dark:text-slate-100 tracking-wide font-black py-4 block select-none drop-shadow-sm leading-relaxed max-w-xl mx-auto">
+                <div className="text-3xl sm:text-4xl font-serif tracking-wide font-black py-4 block select-none drop-shadow-sm leading-relaxed max-w-xl mx-auto text-inherit">
                   بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                 </div>
               )}
@@ -948,7 +948,7 @@ export default function QuranReader({
                         className={`font-quran cursor-pointer rounded-xl px-2 py-1 inline-block transition-all duration-200 ${
                           isSelected 
                             ? "bg-emerald-500/20 dark:bg-emerald-500/35 text-emerald-800 dark:text-emerald-200 font-bold scale-102 ring-2 ring-emerald-500/30" 
-                            : "hover:bg-emerald-500/10 text-slate-900 dark:text-slate-100"
+                            : "hover:bg-emerald-500/10"
                         }`}
                       >
                         {getCleanAyahText(ayah)}
@@ -1021,7 +1021,7 @@ export default function QuranReader({
 
                         {/* Verse Uthmani Text */}
                         <p 
-                          className="font-quran text-right select-all font-semibold leading-relaxed text-slate-900 dark:text-slate-100 mb-1"
+                          className="font-quran text-right select-all font-semibold leading-relaxed mb-1"
                           style={{ fontSize: `${fontSize}px` }}
                         >
                           {ayah.text}
@@ -1070,7 +1070,7 @@ export default function QuranReader({
                                 onClick={() => handleToggleWordReveal(wordKey)}
                                 className={`inline-block mx-0.5 px-0.5 rounded cursor-pointer transition-all duration-200 select-none ${
                                   isRevealed 
-                                    ? "text-slate-900 dark:text-slate-100 font-bold" 
+                                    ? "font-bold" 
                                     : "bg-slate-200 dark:bg-slate-800 text-transparent hover:bg-emerald-100 dark:hover:bg-emerald-950/40 select-none filter blur-[3px]"
                                 }`}
                               >
