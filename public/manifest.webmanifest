@@ -1,0 +1,25 @@
+{
+  "name": "أثر آية",
+  "short_name": "أثر آية",
+  "description": "تطبيق تدبر وحفظ القرآن الكريم",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F5EE",
+  "theme_color": "#0F766E",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

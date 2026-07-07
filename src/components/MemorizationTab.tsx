@@ -11,9 +11,10 @@ import { getUserMemorizationPlans, createMemorizationPlan, deleteMemorizationPla
 interface MemorizationTabProps {
   currentUser: User | null;
   onRefreshStats: () => void;
+  onShowToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-export default function MemorizationTab({ currentUser, onRefreshStats }: MemorizationTabProps) {
+export default function MemorizationTab({ currentUser, onRefreshStats, onShowToast }: MemorizationTabProps) {
   const [plans, setPlans] = useState<MemorizationPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -104,12 +105,19 @@ export default function MemorizationTab({ currentUser, onRefreshStats }: Memoriz
       await updateMemorizationPlan(currentUser.id, planId, {
         nextReviewDate: nextReviewDate.toISOString(),
         intervalDays: nextInterval,
-        completed: rating === "mastered"
+        completed: rating === "mastered",
+        revisionHistory: [
+          ...(plan.revisionHistory || []),
+          { date: new Date().toISOString(), rating }
+        ]
       });
       setReviewPlanId(null);
       fetchPlans();
+      onRefreshStats();
+      onShowToast("تم التقييم وتحديث خطة المراجعة بنجاح", "success");
     } catch (err) {
       console.error(err);
+      onShowToast("حدث خطأ أثناء حفظ التقييم", "error");
     }
   };
 

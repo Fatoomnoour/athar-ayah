@@ -1,41 +1,39 @@
-import { getReadingProgress, getUserMemorizationPlans, updateMemorizationPlan } from "../services/firestoreService";
+import { getReadingProgress, getUserMemorizationPlans } from "../services/firestoreService";
 import React, { useState, useEffect } from "react";
 import { 
   Award, BookOpen, Calendar, CheckCircle2, ChevronLeft, 
-
-
-  Clock, Flame, HelpCircle, LayoutDashboard, RefreshCw, Star, Play 
+  Clock, Flame, HelpCircle, LayoutDashboard, RefreshCw, Star, Play,
+  Share2, Target, BarChart2, TrendingUp, Compass, ChevronRight, Zap
 } from "lucide-react";
 import { SURAH_LIST } from "../utils/quranUtils";
-import { User, MemorizationPlan, ReadingProgress } from "../types";
+import { User, MemorizationPlan, ReadingProgress, Challenge } from "../types";
+import confetti from 'canvas-confetti';
 
 interface ProgressPageProps {
   currentUser: User | null;
   onStartMemorizeSession: (plan: MemorizationPlan) => void;
   onShowToast: (msg: string, type: "success" | "error" | "info") => void;
   onRefreshStats: () => void;
+  onNavigateToReader: (surahId?: number, verseNum?: number) => void;
 }
 
 export default function ProgressPage({
   currentUser,
   onStartMemorizeSession,
   onShowToast,
-  onRefreshStats
+  onRefreshStats,
+  onNavigateToReader
 }: ProgressPageProps) {
   const [plans, setPlans] = useState<MemorizationPlan[]>([]);
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Filter tabs for Memorization Plans: "all" | "active" | "completed" | "revision_due"
-  const [planFilter, setPlanFilter] = useState<"all" | "active" | "completed" | "revision_due">("all");
+  const [activeTab, setActiveTab] = useState<"journey" | "plans" | "achievements">("journey");
 
   useEffect(() => {
     if (currentUser) {
       fetchData();
     }
   }, [currentUser]);
-
-
 
   const fetchData = async () => {
     if (!currentUser) return;
@@ -45,54 +43,31 @@ export default function ProgressPage({
         getUserMemorizationPlans(currentUser.id),
         getReadingProgress(currentUser.id)
       ]);
-
       setPlans(plansData);
       if (progressData) {
         setProgress(progressData);
       }
     } catch (err) {
       console.error(err);
-      onShowToast("عذراً، فشل تحميل تقارير التقدم من الخادم.", "error");
+      onShowToast("حدث خطأ أثناء جلب البيانات", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleTogglePlanComplete = async (planId: string, currentCompleted: boolean) => {
-    if (!currentUser) return;
-    try {
-      await updateMemorizationPlan(currentUser.id, planId, { completed: !currentCompleted });
-      onShowToast(!currentCompleted ? "تهانينا! تم وسم الخطة كمكتملة 🎉" : "تم إلغاء اكتمال الخطة", "success");
-      fetchData();
-      onRefreshStats();
-    } catch (err) {
-      console.error(err);
+  const handleShare = () => {
+    const shareText = `لقد قرأت ${progress?.totalVersesRead || 0} آية وأتممت ${(progress?.khatmahPercentage || 0).toFixed(1)}% من الختمة! تعال شاركني الأجر في تطبيق أثر آية. \n ${window.location.origin}`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'رحلتي مع أثر آية',
+        text: shareText,
+        url: window.location.origin
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(shareText);
+      onShowToast("تم نسخ رابط التطبيق لمشاركته!", "success");
     }
-  };
-
-  // Compute stats metrics
-  const completedSurahsCount = progress?.completedSurahs?.length || 0;
-  const activePlans = plans.filter((p) => !p.completed);
-  const completedPlans = plans.filter((p) => p.completed);
-
-  // Check if a plan is due for Spaced Revision today
-  const isPlanDueForRevision = (plan: MemorizationPlan) => {
-    if (plan.completed) return false;
-    if (!plan.nextReviewDate) return false;
-    
-    const today = new Date().toISOString().split("T")[0];
-    return plan.nextReviewDate <= today;
-  };
-
-  const revisionDuePlans = plans.filter(isPlanDueForRevision);
-
-  const getFilteredPlans = () => {
-    switch (planFilter) {
-      case "active": return activePlans;
-      case "completed": return completedPlans;
-      case "revision_due": return revisionDuePlans;
-      default: return plans;
-    }
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
   };
 
   if (isLoading) {
@@ -104,302 +79,196 @@ export default function ProgressPage({
     );
   }
 
+  const completedSurahsCount = progress?.completedSurahs?.length || 0;
+  const growthLevel = progress?.treeLevel || Math.min(5, Math.max(1, Math.floor(completedSurahsCount / 20) + 1));
+  const khatmahPercentage = progress?.khatmahPercentage || ((progress?.totalVersesRead || 0) / 6236) * 100;
+  const hoursRead = Math.floor((progress?.totalReadTimeMinutes || 0) / 60);
+  const minsRead = (progress?.totalReadTimeMinutes || 0) % 60;
+
   return (
-    <div className="space-y-6 text-right font-sans" dir="rtl">
-      
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* Completed Surahs Tracker */}
-        <div className="p-5 bg-gradient-to-br from-emerald-50 to-emerald-100/40 dark:from-slate-900 dark:to-slate-950 border border-emerald-100 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">ختم السور الكريمة</span>
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">{completedSurahsCount} <span className="text-xs text-slate-400 font-medium">/ ١١٤ سورة</span></span>
-            {/* Progress bar */}
-            <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
-              <div 
-                className="bg-emerald-600 h-2 rounded-full transition-all duration-500" 
-                style={{ width: `${Math.max(3, (completedSurahsCount / 114) * 100)}%` }}
-              ></div>
-            </div>
-          </div>
-          <span className="block text-[10px] text-slate-400 leading-tight">اضغط على تبويب "ورد التلاوة" لتعديل السور المنجزة.</span>
+    <div className="space-y-6 text-right font-sans max-w-5xl mx-auto" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white tracking-tight">رحلتي مع القرآن</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">تتبع إنجازاتك اليومية، وردك، ونمو شجرتك الإيمانية.</p>
         </div>
-
-        {/* Spaced Revision Due Metric */}
-        <div className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/40 dark:from-slate-900 dark:to-slate-950 border border-amber-100 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">مراجعات متباعدة مستحقة اليوم</span>
-            <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
-              <Clock className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">
-              {revisionDuePlans.length} <span className="text-xs text-slate-400 font-medium">مواضع مطلوبة مراجعتها</span>
-            </span>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-              وفقاً لمنحنى النسيان لجدولة الحفظ، يجب مراجعة هذه المواضع لضمان تثبيتها في الذاكرة طويلة المدى.
-            </p>
-          </div>
-        </div>
-
-        {/* Daily Tasks / Streak */}
-        <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100/40 dark:from-slate-900 dark:to-slate-950 border border-purple-100 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">شريط اليوم وسلسلة المواظبة</span>
-            <div className="p-2 bg-purple-500/10 text-purple-600 rounded-xl">
-              <Flame className="h-5 w-5 animate-pulse text-amber-500" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">
-              {progress?.currentStreak || 0} <span className="text-xs text-slate-400 font-medium">أيام متصلة</span>
-            </span>
-            <div className="mt-3 bg-white/50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-purple-100/50 dark:border-slate-700/50">
-              <span className="block text-[10px] text-slate-500 font-bold mb-2">٢ من ٣ مهام أُنجزت اليوم</span>
-              <div className="flex gap-2 justify-between">
-                <div className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="w-full h-1.5 bg-emerald-500 rounded-full shadow-xs"></div>
-                  <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold">قراءة</span>
-                </div>
-                <div className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="w-full h-1.5 bg-emerald-500 rounded-full shadow-xs"></div>
-                  <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold">حفظ</span>
-                </div>
-                <div className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
-                  <span className="text-[9px] text-slate-400 font-bold">تدبر</span>
-                </div>
-              </div>
-            </div>
-            {progress?.currentStreak === 0 && (
-              <p className="text-[10px] text-slate-500 mt-2 text-center">نبدأ اليوم من جديد بفضل الله ✨</p>
-            )}
-          </div>
-        </div>
+        <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition">
+          <Share2 className="w-5 h-5" />
+          <span>مشاركة الإنجاز</span>
+        </button>
       </div>
 
-      {/* Athar Garden Visualization */}
-      <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-5 shadow-sm overflow-hidden relative">
-        <div className="flex justify-between items-center mb-4 relative z-10">
-          <h3 className="text-sm font-black text-emerald-700 dark:text-emerald-400">حديقة الأثر</h3>
-          <span className="text-[10px] text-slate-500 font-bold bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">تزدهر الحديقة بزيادة مواظبتك</span>
-        </div>
-        <div className="h-32 flex items-end justify-around pb-2 relative z-10">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => {
-            // Mock growth based on points
-            const points = progress?.points || 0;
-            const growthLevel = Math.min(5, Math.floor(points / (i * 15)));
-            const isGrown = growthLevel > 0;
-            
-            return (
-              <div key={i} className="flex flex-col items-center gap-2">
-                <div className={`transition-all duration-1000 transform ${isGrown ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
-                  <div className="text-2xl sm:text-4xl" style={{ transform: `scale(${0.5 + (growthLevel * 0.15)})` }}>
-                    {growthLevel === 1 ? "🌱" : growthLevel === 2 ? "🌿" : growthLevel === 3 ? "🌸" : growthLevel === 4 ? "✨" : "🍎"}
-                  </div>
-                </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
-              </div>
-            );
-          })}
-        </div>
-        {/* Background decorative curve */}
-        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-emerald-50 dark:from-emerald-900/10 to-transparent" />
+      {/* Tabs */}
+      <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl w-fit">
+        <button onClick={() => setActiveTab("journey")} className={`px-4 py-2 rounded-xl text-sm font-bold transition ${activeTab === "journey" ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}>الإحصائيات</button>
+        <button onClick={() => setActiveTab("plans")} className={`px-4 py-2 rounded-xl text-sm font-bold transition ${activeTab === "plans" ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}>خطط الحفظ</button>
+        <button onClick={() => setActiveTab("achievements")} className={`px-4 py-2 rounded-xl text-sm font-bold transition ${activeTab === "achievements" ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}>الأوسمة والشجرة</button>
       </div>
 
-      {/* Main Grid: Plans (8 Cols) & Calendar schedule (4 Cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Plans list */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-5 rounded-2xl border space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-            <h3 className="text-sm font-black text-emerald-600 flex items-center gap-1.5">
-              <Award className="h-5 w-5" />
-              <span>خطط ومستويات الحفظ الحالية</span>
-            </h3>
+      {activeTab === "journey" && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Main Premium Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">نسبة الختمة</span>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl"><Target className="w-5 h-5" /></div>
+              </div>
+              <div className="mt-4">
+                <span className="text-3xl font-black text-slate-800 dark:text-white">{Math.min(100, khatmahPercentage).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, khatmahPercentage)}%` }} />
+              </div>
+            </div>
 
-            {/* Filter selectors */}
-            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border gap-1">
-              <button
-                onClick={() => setPlanFilter("all")}
-                className={`px-3 py-1 text-[10px] font-bold rounded-lg ${planFilter === "all" ? "bg-emerald-600 text-white" : "text-slate-400"}`}
-              >
-                الكل
-              </button>
-              <button
-                onClick={() => setPlanFilter("active")}
-                className={`px-3 py-1 text-[10px] font-bold rounded-lg ${planFilter === "active" ? "bg-emerald-600 text-white" : "text-slate-400"}`}
-              >
-                النشطة ({activePlans.length})
-              </button>
-              <button
-                onClick={() => setPlanFilter("revision_due")}
-                className={`px-3 py-1 text-[10px] font-bold rounded-lg ${planFilter === "revision_due" ? "bg-amber-500 text-white" : "text-slate-400"}`}
-              >
-                مستحقة المراجعة ({revisionDuePlans.length})
-              </button>
-              <button
-                onClick={() => setPlanFilter("completed")}
-                className={`px-3 py-1 text-[10px] font-bold rounded-lg ${planFilter === "completed" ? "bg-emerald-600 text-white" : "text-slate-400"}`}
-              >
-                المكتملة
-              </button>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">وقت التلاوة</span>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl"><Clock className="w-5 h-5" /></div>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-black text-slate-800 dark:text-white">{hoursRead}</span><span className="text-sm text-slate-500">س</span>
+                <span className="text-3xl font-black text-slate-800 dark:text-white ml-2">{minsRead}</span><span className="text-sm text-slate-500">د</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">الآيات المقروءة</span>
+                <div className="p-2 bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-xl"><BookOpen className="w-5 h-5" /></div>
+              </div>
+              <div className="mt-4">
+                <span className="text-3xl font-black text-slate-800 dark:text-white">{progress?.totalVersesRead || 0}</span>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 rounded-2xl text-white flex flex-col justify-between relative overflow-hidden shadow-lg shadow-orange-500/20">
+              <div className="flex justify-between items-start relative z-10">
+                <span className="text-sm font-bold text-white/90">أيام متتالية</span>
+                <div className="p-2 bg-white/20 rounded-xl"><Flame className="w-5 h-5 text-white" /></div>
+              </div>
+              <div className="mt-4 relative z-10">
+                <span className="text-4xl font-black">{progress?.currentStreak || 0}</span>
+                <span className="text-sm text-white/80 mr-2 font-medium">أيام</span>
+              </div>
+              <Flame className="absolute -bottom-4 -left-4 w-32 h-32 text-white/10" />
             </div>
           </div>
 
-          {/* List of plans */}
-          {getFilteredPlans().length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-950/20 rounded-xl border border-dashed border-slate-200/50">
-              {planFilter === "revision_due" 
-                ? "الحمد لله، لا يوجد أي مواضع مستحقة المراجعة العاجلة اليوم!" 
-                : "لا توجد خطط حفظ مطابقة للتصنيف المختار حالياً."}
+          {/* Smart Daily Wird & Challenges */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-2xl"><Compass className="w-6 h-6" /></div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white">الورد اليومي الذكي</h3>
+                  <p className="text-sm text-slate-500">يتكيف مع قراءتك السابقة لتصل لهدفك</p>
+                </div>
+              </div>
+              
+              <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 flex flex-col justify-center items-center text-center space-y-4">
+                <p className="text-slate-600 dark:text-slate-400 font-medium">هدف اليوم بناءً على سرعة قراءتك</p>
+                <div className="text-4xl font-black text-emerald-600 dark:text-emerald-500">
+                  {progress?.dailyGoalVerses || 50} <span className="text-lg text-slate-500">آية</span>
+                </div>
+                <button onClick={() => onNavigateToReader()} className="px-6 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold rounded-xl w-full transition shadow-sm flex justify-center items-center gap-2">
+                  <Play className="w-4 h-4 fill-current" /> بدء تلاوة الورد
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {getFilteredPlans().map((plan) => {
-                const isDue = isPlanDueForRevision(plan);
-                return (
-                  <div 
-                    key={plan.id}
-                    className={`p-4 rounded-xl border transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-                      isDue 
-                        ? "bg-amber-500/5 border-amber-300 dark:border-amber-900/60" 
-                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200"
-                    }`}
-                  >
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-xs text-slate-800 dark:text-white">{plan.title}</span>
-                        {plan.completed ? (
-                          <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-[8px] rounded-md font-black">مكتمل ✓</span>
-                        ) : isDue ? (
-                          <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] rounded-md font-black animate-pulse">⏰ مستحق المراجعة اليوم</span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 text-[8px] rounded-md font-black">نشط</span>
-                        )}
-                      </div>
 
-                      <p className="text-[10px] text-slate-400">
-                        الآيات: من {plan.startVerse} إلى {plan.endVerse} من سورة {plan.surahName}
-                      </p>
-
-                      {plan.nextReviewDate && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                          <span>تاريخ المراجعة المتباعدة: {plan.nextReviewDate} ({plan.intervalDays || 1} يوم)</span>
-                        </div>
-                      )}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-2xl"><Zap className="w-6 h-6" /></div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white">التحديات الأسبوعية</h3>
+                  <p className="text-sm text-slate-500">شارك في التحديات لتسريع الختمة</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {[
+                  { id: 1, title: 'اقرأ سورة الكهف', current: 0, target: 1, reward: 50, action: () => onNavigateToReader(18, 1) },
+                  { id: 2, title: 'تلاوة 500 آية', current: Math.min(500, progress?.totalVersesRead || 0), target: 500, reward: 200, action: () => onNavigateToReader() }
+                ].map(c => (
+                  <div key={c.id} onClick={c.action} className={`p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl ${c.action ? 'cursor-pointer hover:border-emerald-300 transition' : ''}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-bold text-sm text-slate-800 dark:text-white">{c.title}</span>
+                      <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-md">+{c.reward} نقطة</span>
                     </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      {/* Interactive Hifz Session Launcher */}
-                      {!plan.completed && (
-                        <button
-                          onClick={() => onStartMemorizeSession(plan)}
-                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-xl shadow-xs flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <Play className="h-3 w-3 fill-white" />
-                          <span>جلسة مراجعة ذكية</span>
-                        </button>
-                      )}
-
-                      {/* Complete toggle */}
-                      <button
-                        onClick={() => handleTogglePlanComplete(plan.id, plan.completed)}
-                        className={`px-3 py-2 text-[10px] font-bold rounded-xl border transition cursor-pointer ${
-                          plan.completed 
-                            ? "bg-slate-50 hover:bg-slate-100 text-slate-500" 
-                            : "bg-white dark:bg-slate-900 text-emerald-600 hover:bg-emerald-50/20"
-                        }`}
-                      >
-                        {plan.completed ? "وسم كغير مكتمل" : "وسم كمكتمل"}
-                      </button>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden" dir="ltr">
+                      <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${(c.current / c.target) * 100}%` }} />
+                    </div>
+                    <div className="text-right mt-1" dir="ltr">
+                      <span className="text-[10px] text-slate-400 font-medium">{c.current} / {c.target}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Spaced Revision Calendar info panel */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border space-y-4">
-          
-          <h3 className="text-sm font-black text-emerald-600 flex items-center gap-1.5 border-b pb-3">
-            <Calendar className="h-5 w-5" />
-            <span>روزنامة التكرار المتباعد</span>
-          </h3>
-
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-            تعتمد الجدولة المتباعدة على قياس جودة استذكار الموضع وتكرار تلاوته بالتدريج في فترات متباعدة لتخزينه بالذاكرة العميقة.
-          </p>
-
-          <div className="relative border-r-2 border-slate-100 dark:border-slate-800 pr-6 space-y-6 pt-4 mt-2">
-            
-            <div className="relative">
-              <span className="absolute -right-[31px] top-1 h-3.5 w-3.5 rounded-full bg-rose-500 ring-4 ring-white dark:ring-slate-900 shadow-sm"></span>
-              <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-rose-200 transition">
-                <span className="block text-xs font-black text-rose-600 mb-1">مراجعة تكرارية (يوم)</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">للمواضع الصعبة جداً أو حديثة الحفظ لضمان عدم تلاشي البصمة العصبية.</p>
+                ))}
               </div>
             </div>
-
-            <div className="relative">
-              <span className="absolute -right-[31px] top-1 h-3.5 w-3.5 rounded-full bg-amber-500 ring-4 ring-white dark:ring-slate-900 shadow-sm"></span>
-              <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-amber-200 transition">
-                <span className="block text-xs font-black text-amber-600 mb-1">مراجعة متوسطة (٣ أيام)</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">للمواضع متوسطة التمكين لرفع مستوى استذكارها التلقائي.</p>
-              </div>
-            </div>
-
-            <div className="relative">
-              <span className="absolute -right-[31px] top-1 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900 shadow-sm"></span>
-              <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-emerald-200 transition">
-                <span className="block text-xs font-black text-emerald-600 mb-1">مراجعة متباعدة (٧ أيام)</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">للمواضع السهلة والمستقرة لتجنب تشتتها من الذاكرة.</p>
-              </div>
-            </div>
-
-            <div className="relative">
-              <span className="absolute -right-[31px] top-1 h-3.5 w-3.5 rounded-full bg-purple-500 ring-4 ring-white dark:ring-slate-900 shadow-sm"></span>
-              <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-purple-200 transition">
-                <span className="block text-xs font-black text-purple-600 mb-1">مراجعة راسخة (١٤ - ٣٠ يوماً)</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">للمواضع المتقنة تماماً (الصم) لمراجعتها دورياً لضمان عدم ضياع التمكين.</p>
-              </div>
-            </div>
-
-          </div>
-          
-          <h3 className="text-sm font-black text-emerald-600 flex items-center gap-1.5 border-b pb-3 mt-6">
-            <Star className="h-5 w-5 text-amber-400" />
-            <span>المهام اليومية والأوسمة</span>
-          </h3>
-          <div className="space-y-3">
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">أكمل وردك اليومي ({progress?.dailyGoalVerses || 10} آيات)</span>
-              <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-bold">+10 نقاط</span>
-            </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">اكتب خاطرة تدبرية</span>
-              <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-bold">+5 نقاط</span>
-            </div>
-            {progress?.badges?.map((badge, idx) => (
-              <div key={idx} className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">🏅 وسام: {badge}</span>
-              </div>
-            ))}
           </div>
         </div>
+      )}
 
-      </div>
+      {activeTab === "plans" && (
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 animate-in fade-in duration-500">
+           <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
+             <h3 className="font-bold text-lg text-slate-800 dark:text-white">المراجعة الذكية (Spaced Repetition)</h3>
+           </div>
+           {plans.length === 0 ? (
+             <div className="text-center py-10 text-slate-400">لا توجد خطط حفظ. ابدأ بإضافة خطة جديدة!</div>
+           ) : (
+             plans.map(plan => (
+               <div key={plan.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-slate-950">
+                 <div>
+                   <div className="font-bold text-slate-800 dark:text-white">{plan.title}</div>
+                   <div className="text-sm text-slate-500 mt-1">{plan.surahName} - آيات {plan.startVerse} إلى {plan.endVerse}</div>
+                 </div>
+                 <button onClick={() => onStartMemorizeSession(plan)} className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold rounded-lg hover:bg-emerald-200 transition text-sm flex items-center gap-2 w-full sm:w-auto justify-center">
+                   <RefreshCw className="w-4 h-4" /> مراجعة الآن
+                 </button>
+               </div>
+             ))
+           )}
+        </div>
+      )}
 
+      {activeTab === "achievements" && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="bg-gradient-to-b from-emerald-900 to-slate-900 rounded-3xl p-8 text-center relative overflow-hidden border border-slate-800">
+             <h3 className="text-white font-bold text-2xl mb-2 relative z-10">شجرة الإنجاز الإيمانية</h3>
+             <p className="text-emerald-200/70 text-sm mb-10 relative z-10">تنمو الشجرة مع استمرارك في التلاوة وزيادة نقاطك</p>
+             
+             <div className="flex justify-center items-end h-48 relative z-10">
+               <div className="text-9xl transition-transform duration-1000 transform hover:scale-110 cursor-default">
+                 {growthLevel === 1 ? "🌱" : growthLevel === 2 ? "🌿" : growthLevel === 3 ? "🌳" : growthLevel === 4 ? "🌸" : "🍎"}
+               </div>
+             </div>
+             
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800">
+             <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-4">الأوسمة والنياشين</h3>
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {[
+                  { icon: "📖", title: "أول تلاوة", earned: true },
+                  { icon: "🔥", title: "مستمر ٧ أيام", earned: (progress?.longestStreak || 0) >= 7 },
+                  { icon: "🌟", title: "ختم جزء كامل", earned: (progress?.totalVersesRead || 0) >= 148 },
+                  { icon: "👑", title: "ختم القرآن", earned: khatmahPercentage >= 100 },
+                  { icon: "🎯", title: "مراجعة متقنة", earned: plans.some(p => p.revisionHistory?.length > 0) },
+                ].map((badge, i) => (
+                  <div key={i} className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 text-center border ${badge.earned ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 grayscale opacity-50'}`}>
+                    <span className="text-4xl">{badge.icon}</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{badge.title}</span>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

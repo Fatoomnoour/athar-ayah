@@ -10,10 +10,11 @@ import {
   where,
   orderBy,
   serverTimestamp,
-  addDoc, arrayUnion
+  addDoc, arrayUnion, increment
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { QuranNote, ReadingProgress, Bookmark, MemorizationPlan } from "../types";
+import { SURAH_VERSE_COUNTS } from "../utils/quranUtils";
 
 // User Profile
 export async function createUserProfile(userId: string, data: any) {
@@ -287,5 +288,84 @@ export async function addGroupReflection(groupId: string, reflectionData: any) {
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `groups/${groupId}/reflections`);
+  }
+}
+
+
+// Premium: Update advanced stats
+export async function updateAdvancedStats(userId: string, addedVerses: number, addedTimeMinutes: number, surahId: string, lastVerseNumber?: number, lastSurahName?: string) {
+  if (!db) return;
+  try {
+    const ref = doc(db, `users/${userId}/readingProgress`, "current");
+    const snap = await getDoc(ref);
+    let surahCounts: Record<string, number> = {};
+    if (snap.exists() && snap.data().surahReadCounts) {
+      surahCounts = snap.data().surahReadCounts;
+    }
+    
+    // Check if it's a new day to update streak
+    let currentStreak = snap.exists() ? (snap.data().currentStreak || 0) : 0;
+    let longestStreak = snap.exists() ? (snap.data().longestStreak || 0) : 0;
+    const lastReadStr = snap.exists() ? snap.data().lastReadDate : null;
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    if (lastReadStr !== todayStr) {
+      if (lastReadStr) {
+        const lastRead = new Date(lastReadStr);
+        const today = new Date(todayStr);
+        const diffDays = Math.floor((today.getTime() - lastRead.getTime()) / (1000 * 3600 * 24));
+        if (diffDays === 1) {
+          currentStreak += 1;
+        } else if (diffDays > 1) {
+          currentStreak = 1; // Reset streak
+        }
+      } else {
+        currentStreak = 1;
+      }
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+    }
+
+    surahCounts[surahId] = (surahCounts[surahId] || 0) + addedVerses;
+
+    let completedSurahs: number[] = snap.exists() && snap.data().completedSurahs ? snap.data().completedSurahs : [];
+    
+    // Check if current surah is completed
+    const sId = Number(surahId);
+    if (!completedSurahs.includes(sId)) {
+      if (surahCounts[surahId] >= SURAH_VERSE_COUNTS[sId - 1]) {
+        completedSurahs.push(sId);
+      }
+    }
+
+    // We can also calculate khatmah percentage here if total verses is known. Total verses = 6236
+    const prevTotal = snap.exists() ? (snap.data().totalVersesRead || 0) : 0;
+    const newTotal = prevTotal + addedVerses;
+    const khatmahPercentage = Math.min((newTotal / 6236) * 100, 100);
+
+    const updateData: any = {
+      totalVersesRead: increment(addedVerses),
+      totalReadTimeMinutes: increment(addedTimeMinutes),
+      points: increment(addedVerses + (addedTimeMinutes * 5)), // Score logic
+      surahReadCounts: surahCounts,
+      completedSurahs,
+      lastReadDate: todayStr,
+      currentStreak,
+      longestStreak,
+      khatmahPercentage,
+      updatedAt: serverTimestamp()
+    };
+
+    if (lastVerseNumber !== undefined) {
+      updateData.lastSurahId = Number(surahId);
+      updateData.lastVerseNumber = lastVerseNumber;
+      updateData.lastSurahName = lastSurahName || "";
+    }
+
+    await setDoc(ref, updateData, { merge: true });
+    
+  } catch (error) {
+    console.error("Error updating stats", error);
   }
 }

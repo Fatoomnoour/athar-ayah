@@ -53,7 +53,10 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
         filtered = filtered.filter(n => 
           n.reflectionText.includes(search) || 
           n.verseText.includes(search) ||
-          n.title?.includes(search)
+          n.title?.includes(search) ||
+          n.surahName.includes(search) ||
+          n.lesson?.includes(search) ||
+          n.verseNumber.toString() === search
         );
       }
       if (selectedTagFilter) {

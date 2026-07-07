@@ -14,8 +14,10 @@ import {
   getUserBookmarks, 
   deleteBookmark, 
   saveReadingProgress, 
-  createMemorizationPlan 
+  createMemorizationPlan,
+  updateAdvancedStats 
 } from "../services/firestoreService";
+import { trackSurahOpen, trackAyahRead, trackBookmarkAdded, trackReflectionCreated, trackMemorizationPlanCreated } from "../lib/analytics";
 
 interface QuranReaderProps {
   key?: React.Key | string | number;
@@ -40,12 +42,63 @@ export default function QuranReader({
   setFocusMode: propsSetFocusMode
 }: QuranReaderProps) {
   
+  
   // Navigation State
+
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
   const [selectedVerse, setSelectedVerse] = useState<number>(1);
   const [selectedJuz, setSelectedJuz] = useState<number>(1);
   const [selectedPage, setSelectedPage] = useState<number>(1);
   const [selectionType, setSelectionType] = useState<"surah" | "page">("surah");
+
+  // Premium Tracking State
+  const [sessionVersesRead, setSessionVersesRead] = useState<number>(0);
+  const [sessionReadTimeMinutes, setSessionReadTimeMinutes] = useState<number>(0);
+  const lastSyncTime = useRef<number>(Date.now());
+  const activeVersesTracker = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const syncStats = async (isUnmount = false) => {
+      const now = Date.now();
+      const minutesPassed = Math.floor((now - lastSyncTime.current) / 60000);
+      if (minutesPassed >= 1 || activeVersesTracker.current.size > 0) {
+        let maxVerseRead: number | undefined = undefined;
+        let surahNameStr: string | undefined = undefined;
+        if (activeVersesTracker.current.size > 0) {
+          maxVerseRead = Math.max(...Array.from(activeVersesTracker.current));
+          surahNameStr = SURAH_LIST[selectedSurah - 1]?.name;
+        }
+
+        await updateAdvancedStats(
+          currentUser.id, 
+          activeVersesTracker.current.size, 
+          minutesPassed, 
+          selectedSurah.toString(),
+          maxVerseRead,
+          surahNameStr
+        );
+        
+        setSessionReadTimeMinutes(prev => prev + minutesPassed);
+        setSessionVersesRead(prev => prev + activeVersesTracker.current.size);
+        
+        lastSyncTime.current = now;
+        activeVersesTracker.current.clear();
+        if (!isUnmount) {
+          onRefreshStats();
+        }
+      }
+    };
+
+    const interval = setInterval(() => syncStats(false), 60000); // sync every minute
+    
+    return () => {
+      clearInterval(interval);
+      syncStats(true);
+    };
+  }, [currentUser, selectedSurah, onRefreshStats]);
+
 
   // Quran Content State (Continuous list of verses)
   const [verses, setVerses] = useState<any[]>([]);
@@ -144,16 +197,35 @@ export default function QuranReader({
     fetchQuranText();
   }, [selectedSurah, selectedPage, selectionType]);
 
-  // 3. Keep selectedJuz in sync when surah/page loads
+  // 3. Keep selectedJuz in sync when surah/page loads and track read verses
   useEffect(() => {
     if (verses.length > 0 && verses[0].juz) {
       setSelectedJuz(verses[0].juz);
     }
+    
+    // Intersection Observer to track which verses the user has viewed
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const verseNumStr = entry.target.getAttribute("data-verse-num");
+          if (verseNumStr) {
+            activeVersesTracker.current.add(Number(verseNumStr));
+          }
+        }
+      });
+    }, { threshold: 0.5 }); // A verse is considered read when 50% visible
+    
+    setTimeout(() => {
+      document.querySelectorAll(".verse-element").forEach(el => observer.observe(el));
+    }, 500);
+    
+    return () => observer.disconnect();
   }, [verses]);
 
   // 4. Fetch details for the active clicked verse
   useEffect(() => {
     if (activeVerse) {
+      activeVersesTracker.current.add(activeVerse.numberInSurah);
       if (detailTab === "tafsir") fetchTafsir();
       if (detailTab === "words") fetchWordMeanings();
       if (detailTab === "reflections") fetchVerseReflections();
@@ -198,6 +270,7 @@ export default function QuranReader({
           setVerses(formatted);
           if (formatted.length > 0 && selectionType === "surah") {
             setSelectedPage(formatted[0].page);
+            trackSurahOpen(selectedSurah, result.data.name);
           }
         } else {
           // Page response format
@@ -451,7 +524,7 @@ export default function QuranReader({
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://api.alquran.cloud/v1/search/${encodeURIComponent(searchQuery)}/all/quran-uthmani`);
+      const res = await fetch(`https://api.alquran.cloud/v1/search/${encodeURIComponent(searchQuery)}/all/quran-simple-clean`);
       if (res.ok) {
         const data = await res.json();
         setSearchResults(data.data?.matches || []);
@@ -941,11 +1014,12 @@ export default function QuranReader({
                     return (
                       <span 
                         key={`${ayah.surahId}-${ayah.number}`}
+                        data-verse-num={ayah.numberInSurah}
                         onClick={() => {
                           setActiveVerse(ayah);
                           setIsDetailsOpen(true);
                         }}
-                        className={`font-quran cursor-pointer rounded-xl px-2 py-1 inline-block transition-all duration-200 ${
+                        className={`verse-element font-quran cursor-pointer rounded-xl px-2 py-1 inline-block transition-all duration-200 ${
                           isSelected 
                             ? "bg-emerald-500/20 dark:bg-emerald-500/35 text-emerald-800 dark:text-emerald-200 font-bold scale-102 ring-2 ring-emerald-500/30" 
                             : "hover:bg-emerald-500/10"
@@ -969,10 +1043,11 @@ export default function QuranReader({
                     return (
                       <div
                         key={`${ayah.surahId}-${ayah.number}`}
+                        data-verse-num={ayah.numberInSurah}
                         onClick={() => {
                           setActiveVerse(ayah);
                         }}
-                        className={`p-5 sm:p-6 rounded-3xl border transition-all duration-300 cursor-pointer ${
+                        className={`verse-element p-5 sm:p-6 rounded-3xl border transition-all duration-300 cursor-pointer ${
                           isSelected 
                             ? "bg-emerald-500/5 border-emerald-500/40 dark:border-emerald-600/50 shadow-sm" 
                             : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-850 hover:border-slate-200"
@@ -1245,7 +1320,7 @@ export default function QuranReader({
                 onClick={() => setDetailTab("words")}
                 className={`flex-1 py-2 rounded-md text-center transition cursor-pointer ${detailTab === "words" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500"}`}
               >
-                معاني الكلمات
+                الترجمة (Eng)
               </button>
               <button
                 onClick={() => setDetailTab("reflections")}
@@ -1586,7 +1661,9 @@ export default function QuranReader({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+            setSearchQuery(e.target.value);
+          }}
                 placeholder="اكتب كلمة أو آية للبحث (مثال: الرحمن، الجبال)..."
                 className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-850 border rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -1623,7 +1700,6 @@ export default function QuranReader({
                       <span className="font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                         سورة {result.surah.name} | آية {result.numberInSurah}
                       </span>
-                      <span className="text-slate-400 font-bold">الصفحة {result.page}</span>
                     </div>
                     <p className="font-serif font-black font-quran text-black dark:text-slate-100 leading-loose text-sm sm:text-base">
                       {result.text}

@@ -39,6 +39,16 @@ export interface Bookmark {
   createdAt: string;
 }
 
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  current: number;
+  type: 'weekly' | 'monthly';
+  reward: number; // points
+}
+
 export interface ReadingProgress {
   userId: string;
   lastSurahId: number;
@@ -54,6 +64,13 @@ export interface ReadingProgress {
   weeklyGoalProgress: number; // 0 to 100
   streakRecoveriesAvailable: number; // One monthly streak recovery
   badges: string[]; // e.g., ["first_verse", "7_day_streak"]
+  totalReadTimeMinutes?: number;
+  surahReadCounts?: Record<string, number>;
+  totalVersesRead?: number;
+  lastReadDate?: string;
+  khatmahPercentage?: number;
+  treeLevel?: number;
+  challenges?: Challenge[];
   
   updatedAt: string;
 }
@@ -78,6 +95,8 @@ export interface MemorizationPlan {
   createdAt: string;
   nextReviewDate?: string;
   intervalDays?: number;
+  easeFactor?: number; // For SM-2 Spaced Repetition
+  repetitions?: number;
 }
 
 export interface DBState {

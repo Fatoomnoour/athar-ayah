@@ -20,14 +20,22 @@ import Toast, { ToastType } from "./components/Toast";
 import { subscribeToAuthChanges, logout } from "./services/authService";
 import { getUserNotes, getUserBookmarks, getReadingProgress, getUserMemorizationPlans, updateMemorizationPlan } from "./services/firestoreService";
 import { User, MemorizationPlan } from "./types";
-import { SURAH_VERSE_COUNTS } from "./utils/quranUtils";
+import { SURAH_VERSE_COUNTS, SURAH_LIST } from "./utils/quranUtils";
 import { Theme, useDarkMode } from "./hooks/useDarkMode";
+import { initAnalytics, trackAppOpen } from "./lib/analytics";
+import { useFCM } from "./hooks/useFCM";
+import OfflineIndicator from "./components/OfflineIndicator";
+import { getMessaging, getToken } from "firebase/messaging";
+import { messaging } from "./lib/firebase";
 
 export default function App() {
+  useFCM();
+
   // Session Persistence
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    initAnalytics().then(() => trackAppOpen());
     const unsubscribe = subscribeToAuthChanges((firebaseUser) => {
       if (firebaseUser) {
         setCurrentUser({
@@ -175,6 +183,16 @@ export default function App() {
         completedSurahsCount: progress?.completedSurahs?.length || 0,
         plansCount: plans.length
       });
+
+      if (progress && progress.lastSurahId) {
+        const pos = {
+          surahId: progress.lastSurahId,
+          verseNum: progress.lastVerseNumber || 1,
+          surahName: progress.lastSurahName || SURAH_LIST[progress.lastSurahId - 1]?.name || ""
+        };
+        setLastRead(pos);
+        localStorage.setItem(`last_read_${userId}`, JSON.stringify(pos));
+      }
     } catch (err) {
       console.error("Error fetching statistics:", err);
     } finally {
@@ -277,11 +295,14 @@ export default function App() {
 
       {/* Top Header */}
       {!isReaderFocus && (
-        <Header 
+        <>
+          <OfflineIndicator />
+          <Header 
           currentUser={currentUser} 
            
           onLogout={handleLogout}
-        />
+          />
+        </>
       )}
 
       <main className={`w-full mx-auto flex-1 flex flex-col ${isReaderFocus ? "max-w-none px-1 sm:px-3 py-2 space-y-0" : "max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6"}`}>
@@ -476,6 +497,7 @@ export default function App() {
           ) : (
             /* Standard tab viewports */
             <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl">
+              <React.Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>}>
               {activeTab === "reader" && (
                 <QuranReader 
                   key={readerInitialPosition?.ts || "reader"}
@@ -501,6 +523,14 @@ export default function App() {
                   onStartMemorizeSession={(plan) => setActiveMemoPlan(plan)}
                   onShowToast={handleShowToast}
                   onRefreshStats={fetchStats}
+                  onNavigateToReader={(surahId, verseNum) => {
+                    if (surahId && typeof surahId === "number") {
+                      setReaderInitialPosition({ surahId, verseNumber: verseNum || 1, ts: Date.now() });
+                    } else if (lastRead) {
+                      setReaderInitialPosition({ surahId: lastRead.surahId, verseNumber: lastRead.verseNum, ts: Date.now() });
+                    }
+                    setActiveTab("reader");
+                  }}
                 />
               )}
               {activeTab === "bookmarks" && (
@@ -512,7 +542,8 @@ export default function App() {
               {activeTab === "memorization" && (
                 <MemorizationTab 
                   currentUser={currentUser} 
-                  onRefreshStats={fetchStats} 
+                  onRefreshStats={fetchStats}
+                  onShowToast={handleShowToast}
                 />
               )}
               {activeTab === "active-recitation" && (
@@ -535,6 +566,7 @@ export default function App() {
                   onRefreshStats={fetchStats}
                 />
               )}
+            </React.Suspense>
             </div>
           )}
         </div>
@@ -543,7 +575,7 @@ export default function App() {
 
       {/* Mobile devices sticky footer tabs bar */}
       {!activeMemoPlan && !isReaderFocus && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 py-2.5 px-3 z-45 flex items-center justify-around shadow-lg">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] px-3 z-45 flex items-center justify-around shadow-lg">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
