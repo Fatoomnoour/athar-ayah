@@ -1,33 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getToken, onMessage } from 'firebase/messaging';
 import { messaging } from '../lib/firebase';
 import { trackNotificationEnabled, logError } from '../lib/analytics';
 
 export const useFCM = () => {
-  useEffect(() => {
-    const requestPermission = async () => {
-      try {
-        if (!messaging) return;
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          // You need a VAPID key to get a token, but we'll try without it first
-          // or fallback to getting the token which might use the default if configured in Firebase
-          const currentToken = await getToken(messaging);
-          if (currentToken) {
-            console.log('FCM Token:', currentToken);
-            trackNotificationEnabled();
-            // TODO: Save token to user profile in Firestore
-          } else {
-            console.log('No registration token available. Request permission to generate one.');
-          }
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
+
+  const requestPermission = async () => {
+    try {
+      if (!messaging) return false;
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        const currentToken = await getToken(messaging, { vapidKey });
+        if (currentToken) {
+          console.log('FCM Token generated');
+          setFcmToken(currentToken);
+          trackNotificationEnabled();
+          return true;
+        } else {
+          console.log('No registration token available.');
         }
-      } catch (err) {
-        logError(err as Error, { context: 'FCM permission request' });
       }
-    };
+      return false;
+    } catch (err) {
+      logError(err as Error, { context: 'FCM permission request' });
+      return false;
+    }
+  };
 
-    requestPermission();
-
+  useEffect(() => {
     if (messaging) {
       const unsubscribe = onMessage(messaging, (payload) => {
         console.log('Message received. ', payload);
@@ -36,4 +38,6 @@ export const useFCM = () => {
       return () => unsubscribe();
     }
   }, []);
+
+  return { requestPermission, fcmToken };
 };

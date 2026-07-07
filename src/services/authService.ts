@@ -8,13 +8,14 @@ import {
   onAuthStateChanged,
   User as FirebaseUser
 } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, isFirebaseConfigured } from "../lib/firebase";
 import { createUserProfile } from "./firestoreService";
 
 export const googleProvider = new GoogleAuthProvider();
 
 export async function loginWithGoogle() {
-  if (!auth) throw new Error("Firebase auth not initialized");
+  if (!isFirebaseConfigured || !auth) throw new Error("Firebase configuration is missing. Please check your .env.local file.");
+  
   const result = await signInWithPopup(auth, googleProvider);
   await createUserProfile(result.user.uid, {
     displayName: result.user.displayName,
@@ -25,7 +26,7 @@ export async function loginWithGoogle() {
 }
 
 export async function registerWithEmail(email: string, password: string, name: string) {
-  if (!auth) throw new Error("Firebase auth not initialized");
+  if (!isFirebaseConfigured || !auth) throw new Error("Firebase configuration is missing. Please check your .env.local file.");
   const result = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(result.user, { displayName: name });
   await createUserProfile(result.user.uid, {
@@ -36,17 +37,20 @@ export async function registerWithEmail(email: string, password: string, name: s
 }
 
 export async function loginWithEmail(email: string, password: string) {
-  if (!auth) throw new Error("Firebase auth not initialized");
+  if (!isFirebaseConfigured || !auth) throw new Error("Firebase configuration is missing. Please check your .env.local file.");
   const result = await signInWithEmailAndPassword(auth, email, password);
   return result.user;
 }
 
 export async function logout() {
-  if (!auth) throw new Error("Firebase auth not initialized");
+  if (!isFirebaseConfigured || !auth) throw new Error("Firebase configuration is missing. Please check your .env.local file.");
   await signOut(auth);
 }
 
 export function subscribeToAuthChanges(callback: (user: FirebaseUser | null) => void) {
-  if (!auth) return () => {};
+  if (!isFirebaseConfigured || !auth) {
+    callback(null);
+    return () => {};
+  }
   return onAuthStateChanged(auth, callback);
 }

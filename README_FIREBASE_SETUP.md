@@ -1,32 +1,67 @@
-# حل مشكلة تسجيل الدخول بجوجل وصلاحيات قاعدة البيانات
+# إعداد Firebase لتطبيق أثر آية
 
-يبدو أنك تستخدم مشروع Firebase خاص بك. لحل هذه الأخطاء، يرجى اتباع الخطوات التالية في لوحة تحكم Firebase:
+لكي يعمل تطبيق "أثر آية" بشكل كامل مع قاعدة البيانات ونظام المصادقة (Authentication)، اتبع الخطوات التالية:
 
-## 1. حل مشكلة تسجيل الدخول بجوجل (auth/unauthorized-domain)
-مشكلة النطاق غير المصرح به تظهر لأن روابط التطبيق الحالية غير مضافة لقائمة النطاقات المسموح بها في Firebase.
-1. اذهب إلى منصة [Firebase Console](https://console.firebase.google.com/).
-2. اختر مشروعك.
-3. من القائمة الجانبية، اذهب إلى **Authentication** ثم اختر علامة التبويب **Settings** (أو الإعدادات).
-4. اختر **Authorized domains** (النطاقات المعتمدة).
-5. اضغط على **Add domain** (إضافة نطاق) وأضف الرابطين التاليين (بدون `https://`):
-   - `ais-dev-mvv2mliomvjnbesyuqtmod-537973475124.europe-west1.run.app`
-   - `ais-pre-mvv2mliomvjnbesyuqtmod-537973475124.europe-west1.run.app`
+## 1. إنشاء المشروع في Firebase
+1. اذهب إلى [Firebase Console](https://console.firebase.google.com/).
+2. اضغط على **Add project** (أضف مشروع).
+3. أدخل اسم المشروع (مثلاً: `athar-ayah`).
+4. فعّل Google Analytics إذا كنت ترغب بتتبع الاستخدام، ثم أكمل إنشاء المشروع.
 
-## 2. حل مشكلة صلاحيات قاعدة البيانات (Missing or insufficient permissions)
-تظهر هذه المشكلة لأن قواعد حماية قاعدة البيانات (Firestore Rules) تمنع إضافة بيانات جديدة مثل مجموعات وحلقات التدبر.
-1. في لوحة تحكم Firebase، اذهب إلى **Firestore Database**.
-2. اختر علامة التبويب **Rules** (القواعد).
-3. استبدل القواعد الموجودة بالقواعد التالية للسماح للمستخدمين المسجلين بالقراءة والكتابة:
-\`\`\`javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-\`\`\`
-4. اضغط على **Publish** (نشر).
+## 2. إضافة تطبيق ويب (Web App)
+1. من لوحة تحكم المشروع (Project Overview)، اضغط على أيقونة **الويب `</>`**.
+2. أدخل اسم التطبيق.
+3. اضغط **Register app** (تسجيل التطبيق).
+4. ستظهر لك بيانات التهيئة (Firebase config). احتفظ بها للخطوة القادمة.
 
-بمجرد تطبيق هذه التعديلات في Firebase Console، سيعمل تسجيل الدخول عبر جوجل وكذلك حفظ البيانات وحلقات التدبر بنجاح!
+## 3. إعداد متغيرات البيئة (.env.local)
+1. في جذر المشروع، انسخ ملف `.env.example` وأعد تسميته إلى `.env.local`.
+2. انسخ القيم من Firebase config التي ظهرت لك وضعها في الملف الجديد كالتالي:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key_here
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
+   VITE_FIREBASE_PROJECT_ID=your_project_id_here
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id_here
+   VITE_FIREBASE_APP_ID=your_app_id_here
+   ```
+
+## 4. إعداد الـ Authentication
+1. من القائمة الجانبية في Firebase Console، اذهب إلى **Authentication**.
+2. اضغط على **Get started**.
+3. من تبويب **Sign-in method**، أضف:
+   - **Google**: فعّله واختر إيميل الدعم الخاص بك.
+   - **Email/Password**: فعّله لتسجيل الدخول بالبريد الإلكتروني وكلمة المرور.
+4. اذهب إلى تبويب **Settings -> Authorized domains** وتأكد من إضافة نطاق الاستضافة الخاص بك (مثل: `your-project.web.app`، ومحلياً `localhost`).
+
+## 5. إعداد قاعدة البيانات (Firestore)
+1. اذهب إلى **Firestore Database** من القائمة الجانبية.
+2. اضغط على **Create database**.
+3. اختر الموقع الجغرافي (يفضل أقرب موقع للمستخدمين).
+4. انشر قواعد الأمان المرفقة مع المشروع. استخدم أمر:
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+   (تأكد من وجود ملف `firestore.rules` في جذر المشروع).
+
+## 6. نشر التطبيق على Firebase Hosting
+1. تأكد من إعداد المشروع للإنتاج:
+   ```bash
+   npm run build
+   ```
+2. سجل الدخول إلى Firebase CLI:
+   ```bash
+   npx firebase login
+   ```
+3. هيئ Firebase للمشروع:
+   ```bash
+   npx firebase init hosting
+   ```
+   - اختر المشروع الذي قمت بإنشائه.
+   - مسار الـ Public directory: `dist`
+   - Configure as a single-page app (rewrite all urls to /index.html)? **Yes**
+   - Set up automatic builds and deploys with GitHub? **No**
+4. قم برفع التطبيق:
+   ```bash
+   npx firebase deploy --only hosting
+   ```

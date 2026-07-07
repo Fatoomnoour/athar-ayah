@@ -1,4 +1,3 @@
-
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
@@ -27,7 +26,6 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // This looks to see if the current is already open and focuses if it is
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((clientList) => {
       for (const client of clientList) {

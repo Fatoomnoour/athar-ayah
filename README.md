@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# أثر آية - Athar Ayah
 
-# Run and deploy your AI Studio app
+تطبيق "أثر آية" هو منصة إسلامية متكاملة تهدف إلى تعزيز تجربة تدبر القرآن الكريم ومتابعة الحفظ وتتبع الورد اليومي للمسلم.
 
-This contains everything you need to run your app locally.
+## تشغيل المشروع محلياً (Development)
 
-View your app in AI Studio: https://ai.studio/apps/20861ac1-e63d-4c3c-bbd9-10f902e7045f
+تأكد من توافر Node.js على جهازك، ثم اتبع الخطوات التالية:
 
-## Run Locally
+1. **تثبيت الحزم (Dependencies):**
+   ```bash
+   npm install
+   ```
 
-**Prerequisites:**  Node.js
+2. **إعداد متغيرات البيئة (Environment Variables):**
+   انسخ ملف `.env.example` إلى `.env.local` وأضف إعدادات Firebase الخاصة بك.
+   ```bash
+   cp .env.example .env.local
+   ```
+   *راجع ملف `README_FIREBASE_SETUP.md` لمزيد من التفاصيل حول الإعداد.*
 
+3. **تشغيل بيئة التطوير (Development Server):**
+   ```bash
+   npm run dev
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+4. **التحقق من صحة الكود (Linting):**
+   ```bash
+   npm run lint
+   ```
+
+5. **بناء المشروع للإنتاج (Production Build):**
+   ```bash
+   npm run build
+   ```
+
+## الميزات الأساسية
+- قراءة القرآن مع تفاسير وتراجم.
+- تتبع الورد اليومي والإنجازات.
+- خواطر التدبر ومشاركة الفوائد.
+- خطط الحفظ وتكرار الآيات.

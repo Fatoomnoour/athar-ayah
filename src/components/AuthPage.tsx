@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Compass, Mail, Lock, User as UserIcon, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
 import { User } from "../types";
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from "../services/authService";
+import { isFirebaseConfigured } from "../lib/firebase";
 
 export default function AuthPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -15,6 +16,10 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!isFirebaseConfigured) {
+      setError("إعدادات Firebase غير مكتملة، تواصل مع الدعم الفني أو راجع .env.local");
+      return;
+    }
     if (!email || !password || (isRegister && !name)) {
       setError("الرجاء ملء جميع الحقول المطلوبة");
       return;
@@ -47,6 +52,10 @@ export default function AuthPage() {
 
   const handleGoogleAuth = async () => {
     setError("");
+    if (!isFirebaseConfigured) {
+      setError("إعدادات Firebase غير مكتملة، تواصل مع الدعم الفني أو راجع .env.local");
+      return;
+    }
     setIsLoading(true);
     try {
       const resultUser = await loginWithGoogle();
@@ -153,7 +162,7 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isFirebaseConfigured}
               className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isLoading ? (
@@ -181,7 +190,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={handleGoogleAuth}
-              disabled={isLoading}
+              disabled={isLoading || !isFirebaseConfigured}
               className="w-full py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               <svg className="h-4 w-4 text-slate-500" viewBox="0 0 24 24">

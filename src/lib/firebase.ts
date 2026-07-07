@@ -1,8 +1,35 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { getMessaging, isSupported } from "firebase/messaging";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getMessaging, isSupported, Messaging } from "firebase/messaging";
+
+const requiredEnvVars = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID'
+];
+
+let missingVars: string[] = [];
+
+for (const envVar of requiredEnvVars) {
+  const val = import.meta.env[envVar];
+  if (!val || val === "undefined" || val.trim() === "") {
+    missingVars.push(envVar);
+  }
+}
+
+export const isFirebaseConfigured = missingVars.length === 0;
+
+if (!isFirebaseConfigured) {
+  console.warn(
+    `Firebase configuration is missing or incomplete.\n` +
+    `Please check your .env.local file. Missing variables:\n${missingVars.join('\n')}`
+  );
+}
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,25 +40,23 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase only if config is valid (prevent breaking build if env missing)
-let app;
-if (firebaseConfig.apiKey) {
+let app: FirebaseApp | null = null;
+if (isFirebaseConfigured) {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-} else {
-  console.warn("Firebase configuration is missing! Please provide the required environment variables.");
-  // Provide a dummy app or just initialize empty, it will fail on operations but won't crash the app on load
 }
 
-export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
-export const storage = app ? getStorage(app) : null;
+export const auth: Auth | null = app ? getAuth(app) : null;
+export const db: Firestore | null = app ? getFirestore(app) : null;
+export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
 
-let messagingRef = null;
+let messagingRef: Messaging | null = null;
 if (app) {
   isSupported().then((supported) => {
-    if (supported) {
+    if (supported && app) {
       messagingRef = getMessaging(app);
     }
+  }).catch(err => {
+    console.warn("FCM not supported:", err);
   });
 }
 export const messaging = messagingRef;
@@ -79,6 +104,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.error('Firestore Error: ', JSON.stringify(errInfo, null, 2));
+  throw new Error(errInfo.error); // Keep it cleaner for UI consumption
 }

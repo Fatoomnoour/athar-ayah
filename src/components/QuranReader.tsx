@@ -67,7 +67,7 @@ export default function QuranReader({
         let maxVerseRead: number | undefined = undefined;
         let surahNameStr: string | undefined = undefined;
         if (activeVersesTracker.current.size > 0) {
-          maxVerseRead = Math.max(...Array.from(activeVersesTracker.current));
+          maxVerseRead = Math.max(...(Array.from(activeVersesTracker.current) as number[]));
           surahNameStr = SURAH_LIST[selectedSurah - 1]?.name;
         }
 

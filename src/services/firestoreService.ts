@@ -226,6 +226,7 @@ export async function createGroup(userId: string, groupData: any) {
   try {
     const ref = collection(db, "groups");
     const docRef = await addDoc(ref, {
+      createdBy: userId,
       ...groupData,
       memberIds: [userId],
       createdAt: serverTimestamp()
