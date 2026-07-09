@@ -130,6 +130,11 @@ export default function QuranReader({
   const [tafsirText, setTafsirText] = useState<string>("");
   const [isLoadingTafsir, setIsLoadingTafsir] = useState<boolean>(false);
 
+  // English Translation State
+  const [translationSource, setTranslationSource] = useState<string>("en.sahih");
+  const [translationText, setTranslationText] = useState<string>("");
+  const [isLoadingTranslation, setIsLoadingTranslation] = useState<boolean>(false);
+
   // Word meanings
   const [words, setWords] = useState<any[]>([]);
   const [isLoadingWords, setIsLoadingWords] = useState<boolean>(false);
@@ -159,6 +164,7 @@ export default function QuranReader({
   // Search Engine state
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isWordMeaningsVisible, setIsWordMeaningsVisible] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
 
@@ -228,11 +234,11 @@ export default function QuranReader({
     if (activeVerse) {
       activeVersesTracker.current.add(activeVerse.numberInSurah);
       if (detailTab === "tafsir") fetchTafsir();
-      if (detailTab === "words") fetchWordMeanings();
+      if (detailTab === "words") fetchTranslationAndWords();
       if (detailTab === "reflections") fetchVerseReflections();
       checkBookmarkStatus();
     }
-  }, [activeVerse, detailTab, tafsirSource]);
+  }, [activeVerse, detailTab, tafsirSource, translationSource]);
 
   // Auto-fill memorization end verse limit when active verse changes
   useEffect(() => {
@@ -316,6 +322,35 @@ export default function QuranReader({
       setTafsirText("خطأ في الشبكة أثناء جلب التفسير المعتمد.");
     } finally {
       setIsLoadingTafsir(false);
+    }
+  };
+
+  // Fetch English Translation for active verse
+  const fetchTranslationAndWords = async () => {
+    if (!activeVerse) return;
+    setIsLoadingTranslation(true);
+    setIsLoadingWords(true);
+    setTranslationText("");
+    setWords([]);
+    setIsWordMeaningsVisible(false); // Collapse on new verse
+
+    try {
+      const surahId = activeVerse.surahId || selectedSurah;
+      const verseKey = `${surahId}:${activeVerse.numberInSurah}`;
+      const [transRes, wordsRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/ayah/${verseKey}/${translationSource}`),
+        fetch(`https://api.quran.com/api/v4/verses/by_key/${verseKey}?words=true&language=ar`)
+      ]);
+
+      if (transRes.ok) setTranslationText((await transRes.json()).data?.text || "");
+      if (wordsRes.ok) setWords((await wordsRes.json()).verse?.words || []);
+
+    } catch (err) {
+      console.error(err);
+      setTranslationText("Translation is currently unavailable.");
+    } finally {
+      setIsLoadingTranslation(false);
+      setIsLoadingWords(false);
     }
   };
 
@@ -627,17 +662,6 @@ export default function QuranReader({
     if (readerTheme === "dark") return "bg-slate-950 text-slate-100 border-slate-900";
     if (readerTheme === "ivory") return "bg-[#FAF7F0] text-slate-900 border-[#eae3d2]";
     return "bg-white text-slate-900 border-slate-200";
-  };
-
-  // Clean Uthmani text of bismillah at the beginning of Surahs
-  const getCleanAyahText = (ayah: any) => {
-    let cleanText = ayah.text;
-    if (ayah.numberInSurah === 1 && selectedSurah !== 1 && selectedSurah !== 9 && selectionType === "surah") {
-      if (cleanText.startsWith("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")) {
-        cleanText = cleanText.substring("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ".length).trim();
-      }
-    }
-    return cleanText;
   };
 
   return (
@@ -982,13 +1006,6 @@ export default function QuranReader({
                   )}
                 </div>
               </div>
-
-              {/* Bismillah Banner if not Tawbah and Fatiha */}
-              {selectionType === "surah" && selectedSurah !== 1 && selectedSurah !== 9 && (
-                <div className="text-3xl sm:text-4xl font-serif tracking-wide font-black py-4 block select-none drop-shadow-sm leading-relaxed max-w-xl mx-auto text-inherit">
-                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                </div>
-              )}
             </div>
           )}
 
@@ -1026,7 +1043,7 @@ export default function QuranReader({
                             : "hover:bg-emerald-500/10"
                         }`}
                       >
-                        {getCleanAyahText(ayah)}
+                        {ayah.text}
                         <span className="inline-block text-emerald-600 dark:text-emerald-400 font-serif text-[0.85em] font-black mr-2 ml-1.5 select-none hover:scale-110 transition duration-150">
                           ﴿{ayah.numberInSurah}﴾
                         </span>
@@ -1378,26 +1395,61 @@ export default function QuranReader({
 
               {/* Tab B: Word meanings */}
               {detailTab === "words" && (
-                <div className="space-y-3">
-                  <h5 className="text-xs font-black text-slate-400 border-b pb-1">ترجمة الكلمات معانيها فردياً:</h5>
-                  
-                  {isLoadingWords ? (
-                    <div className="flex justify-center items-center py-8">
-                      <Loader className="h-5 w-5 animate-spin text-emerald-600" />
+                <div className="space-y-5">
+                  {/* Section Header with Source Selector */}
+                  <div className="flex justify-between items-center">
+                    <h5 className="text-xs font-black text-slate-400">English Translation</h5>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-400">Source:</span>
+                      <select
+                        value={translationSource}
+                        onChange={(e) => setTranslationSource(e.target.value)}
+                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                      >
+                        <option value="en.sahih">Sahih Intl.</option>
+                        <option value="en.pickthall">Pickthall</option>
+                        <option value="en.yusufali">Yusuf Ali</option>
+                      </select>
                     </div>
-                  ) : words.length === 0 ? (
-                    <p className="text-xs text-slate-400 font-semibold text-center py-6">تفصيل كلمات الآية غير متاح مؤقتاً</p>
+                  </div>
+                  
+                  {/* Full Translation Card */}
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 p-4 rounded-xl">
+                    {isLoadingTranslation ? (
+                      <div className="flex justify-center items-center py-10">
+                        <Loader className="h-5 w-5 animate-spin text-emerald-600" />
+                      </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {words.map((w, idx) => {
-                        if (w.char_type_name === "end") return null;
-                        return (
-                          <div key={idx} className="bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border text-center">
-                            <span className="block font-quran text-base font-bold text-emerald-700 dark:text-emerald-400">{w.text_uthmani}</span>
-                            <span className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1">{w.translation?.text || "..."}</span>
-                          </div>
-                        );
-                      })}
+                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-sans text-left">
+                          {translationText || <span className="block text-center text-slate-400">الترجمة غير متاحة حاليًا</span>}
+                        </p>
+                      )}
+                  </div>
+
+                  {/* Word Meanings Collapsible Section */}
+                  {words.length > 0 && (
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3">
+                      <button
+                        onClick={() => setIsWordMeaningsVisible(!isWordMeaningsVisible)}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                      >
+                        <span>{isWordMeaningsVisible ? "إخفاء معاني الكلمات" : "عرض معاني الكلمات"}</span>
+                        <ChevronLeft className={`h-3 w-3 transition-transform ${isWordMeaningsVisible ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {isWordMeaningsVisible && (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 animate-in fade-in duration-300">
+                          {words.map((w, idx) => {
+                            if (w.char_type_name === "end") return null;
+                            return (
+                              <div key={idx} className="flex items-baseline justify-between border-b border-slate-100 dark:border-slate-800 py-1.5">
+                                <span className="font-quran text-base font-bold text-emerald-700 dark:text-emerald-400">{w.text_uthmani}</span>
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 text-left">{w.translation?.text || "..."}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1550,7 +1602,7 @@ export default function QuranReader({
                         <label className="text-[10px] font-bold text-slate-400 block mb-1">إلى آية:</label>
 
 
-
+                      
 
 
 
@@ -1580,7 +1632,7 @@ export default function QuranReader({
                             const max = SURAH_VERSE_COUNTS[(activeVerse.surahId || selectedSurah) - 1];
                             const val = e.target.value === '' ? '' : Number(e.target.value);
                             if (val === '' || (val >= activeVerse.numberInSurah && val <= max)) {
-                                setMemoEndVerse(val);
+                                setMemoEndVerse(val as number);
                             }
                           }}
                           className="w-full p-2 bg-slate-50 dark:bg-slate-850 border rounded-lg text-xs font-bold text-center"

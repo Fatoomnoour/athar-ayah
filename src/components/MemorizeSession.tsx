@@ -6,7 +6,10 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { calculateNextReview } from "../utils/quranUtils";
+import {
+  calculateNextReview,
+  SURAH_VERSE_COUNTS,
+} from "../utils/quranUtils";
 
 interface MemorizeSessionProps {
   planId: string;
@@ -31,23 +34,9 @@ type StepType = "listen" | "read" | "hide" | "test" | "rate";
 const QURAN_STOP_MARKS_REGEX =
   /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED۞۩]/g;
 
-const cleanVerseText = (text: string): string => {
-  if (!text) return "";
+const ARABIC_PUNCTUATION_REGEX = /[()[\]{}«»"'.،؛:!?؟]/g;
 
-  return text
-    .replace(QURAN_STOP_MARKS_REGEX, "")
-    .replace(/[()[\]{}«»"'.،؛:!?؟]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
-const getVerseWords = (text: string): string[] => {
-  return cleanVerseText(text)
-    .split(/\s+/)
-    .filter(Boolean);
-};
-
-const normalizeArabic = (text: string): string => {
+const normalizeArabicForCompare = (text: string): string => {
   if (!text) return "";
 
   return text
@@ -57,9 +46,82 @@ const normalizeArabic = (text: string): string => {
     .replace(/ى/g, "ي")
     .replace(/ؤ/g, "و")
     .replace(/ئ/g, "ي")
-    .replace(/[()[\]{}«»"'.،؛:!?؟]/g, "")
+    .replace(ARABIC_PUNCTUATION_REGEX, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const stripBismillahPrefixForMemorization = (
+  text: string,
+  surahId: number,
+  verseNumber: number
+): string => {
+  if (!text) return "";
+
+  const trimmedText = text.trim();
+
+  // الفاتحة فقط البسملة فيها جزء من الآية حسب النص القرآني المستخدم.
+  // التوبة لا تبدأ بالبسملة أصلاً.
+  // باقي السور: في جلسات الحفظ لا ندمج البسملة مع الآية الأولى إذا كانت موجودة في النص.
+  if (surahId === 1 || surahId === 9 || verseNumber !== 1) {
+    return trimmedText;
+  }
+
+  const words = trimmedText.split(/\s+/).filter(Boolean);
+
+  // Check if the first four words (or fewer if the verse is short) match the Basmalah
+  // This is a robust check that accounts for potential variations in spacing or diacritics
+  // by normalizing the words before comparison.
+  const firstFourNormalized = words
+    .slice(0, 4)
+    .map((word) => normalizeArabicForCompare(word));
+
+  const isBismillah =
+    firstFourNormalized[0] === "بسم" &&
+    firstFourNormalized[1] === "الله" &&
+    firstFourNormalized[2] === "الرحمن" &&
+    firstFourNormalized[3] === "الرحيم";
+  
+  if (!isBismillah) {
+    return trimmedText;
+  }
+  
+  const withoutBismillah = words.slice(4).join(" ").trim();
+
+  return withoutBismillah || trimmedText;
+};
+
+const cleanMemorizationVerseText = (
+  text: string,
+  surahId: number,
+  verseNumber: number
+): string => {
+  return stripBismillahPrefixForMemorization(text, surahId, verseNumber)
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const cleanVerseText = (text: string): string => {
+  if (!text) return "";
+
+  return text
+    .replace(QURAN_STOP_MARKS_REGEX, "")
+    .replace(ARABIC_PUNCTUATION_REGEX, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const getVerseWords = (text: string): string[] => {
+  return cleanVerseText(text).split(/\s+/).filter(Boolean);
+};
+
+const normalizeArabic = (text: string): string => {
+  return normalizeArabicForCompare(text);
+};
+
+const clampNumber = (value: number, min: number, max: number): number => {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(Math.floor(value), max));
 };
 
 export default function MemorizeSession({
@@ -74,8 +136,12 @@ export default function MemorizeSession({
   onShowToast,
   onPlayAyah,
 }: MemorizeSessionProps) {
+  const maxVerseForSurah = SURAH_VERSE_COUNTS[surahId - 1] || endVerse || 1;
+  const safeStartVerse = clampNumber(startVerse, 1, maxVerseForSurah);
+  const safeEndVerse = clampNumber(endVerse, safeStartVerse, maxVerseForSurah);
+
   const [activeStep, setActiveStep] = useState<StepType>("listen");
-  const [currentVerse, setCurrentVerse] = useState<number>(startVerse);
+  const [currentVerse, setCurrentVerse] = useState<number>(safeStartVerse);
   const [verseText, setVerseText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -102,45 +168,86 @@ export default function MemorizeSession({
   const [isNextOptionCorrect, setIsNextOptionCorrect] =
     useState<boolean | null>(null);
 
-  const isLastVerseOfPlan = currentVerse === endVerse;
+  const isLastVerseOfPlan = currentVerse >= safeEndVerse;
+
   const isTestCompleted =
     isBlankCorrect === true ||
     scrambleCompleted === true ||
     isNextOptionCorrect === true;
 
   useEffect(() => {
+    setCurrentVerse(safeStartVerse);
+  }, [safeStartVerse, surahId]);
+
+  useEffect(() => {
     fetchVerse();
-  }, [currentVerse]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVerse, surahId]);
 
   useEffect(() => {
     if (verseText) {
       setupChallenges();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verseText, testType]);
 
-  const fetchVerse = async () => {
-    setIsLoading(true);
-    setVerseText("");
+  const fetchAyahText = async (verseNumber: number): Promise<string> => {
+    const safeVerseNumber = clampNumber(verseNumber, 1, maxVerseForSurah);
+
+    const res = await fetch(
+      `https://api.alquran.cloud/v1/ayah/${surahId}:${safeVerseNumber}/quran-uthmani`
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch ayah text");
+    }
+
+    const result = await res.json();
+    const rawText = result.data?.text || "";
+
+    return cleanMemorizationVerseText(rawText, surahId, safeVerseNumber);
+  };
+
+  const resetExerciseState = () => {
     setBlankAnswerInput("");
     setIsBlankCorrect(null);
     setScrambleCompleted(false);
     setSelectedNextOption("");
     setIsNextOptionCorrect(null);
+    setScrambledWords([]);
+    setUserArrangedWords([]);
+    setNextVerseOptions([]);
+    setBlankWordIndex(-1);
+  };
+
+  const fetchVerse = async () => {
+    const safeCurrentVerse = clampNumber(
+      currentVerse,
+      safeStartVerse,
+      safeEndVerse
+    );
+
+    if (safeCurrentVerse !== currentVerse) {
+      setCurrentVerse(safeCurrentVerse);
+      return;
+    }
+
+    setIsLoading(true);
+    setVerseText("");
+    resetExerciseState();
 
     try {
-      const res = await fetch(
-        `https://api.alquran.cloud/v1/ayah/${surahId}:${currentVerse}/quran-uthmani`
-      );
+      const cleanText = await fetchAyahText(safeCurrentVerse);
 
-      if (res.ok) {
-        const result = await res.json();
-        setVerseText(result.data?.text || "");
-      } else {
+      if (!cleanText) {
         setVerseText("فشل تحميل نص الآية.");
+        return;
       }
+
+      setVerseText(cleanText);
     } catch (err) {
       console.error(err);
-      setVerseText("فشل تحميل نص الآية للذاكرة.");
+      setVerseText("فشل تحميل نص الآية.");
     } finally {
       setIsLoading(false);
     }
@@ -205,16 +312,7 @@ export default function MemorizeSession({
       const nextNumber = currentVerse + 1;
 
       try {
-        const resRealNext = await fetch(
-          `https://api.alquran.cloud/v1/ayah/${surahId}:${nextNumber}/quran-uthmani`
-        );
-
-        let realNextText = "";
-
-        if (resRealNext.ok) {
-          const result = await resRealNext.json();
-          realNextText = result.data?.text || "";
-        }
+        const realNextText = await fetchAyahText(nextNumber);
 
         const distractors = [
           "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا إِنَّ مَعَ الْعُسْرِ يُسْرًا",
@@ -261,16 +359,16 @@ export default function MemorizeSession({
     const userJoined = userArrangedWords.join(" ");
 
     if (userArrangedWords.length === 0) {
-      onShowToast("رتّب كلمات الآية أولاً ثم اضغط تأكيد الترتيب", "info");
+      onShowToast("رتّب كلمات الآية أولاً ثم اضغط تأكيد", "info");
       return;
     }
 
     if (normalizeArabic(originalJoined) === normalizeArabic(userJoined)) {
       setScrambleCompleted(true);
-      onShowToast("أحسنت! ترتيب الآية صحيح تماماً ✨", "success");
+      onShowToast("أحسنت! ترتيب الآية صحيح ✨", "success");
     } else {
       setScrambleCompleted(false);
-      onShowToast("الترتيب غير مطابق، حاول مجدداً بارك الله فيك", "error");
+      onShowToast("الترتيب غير مطابق، حاول مجدداً", "error");
       handleResetScramble();
     }
   };
@@ -280,7 +378,7 @@ export default function MemorizeSession({
     const correctWord = wordsArray[blankWordIndex] || "";
 
     if (!correctWord || blankWordIndex < 0) {
-      onShowToast("لم يتم تجهيز سؤال الفراغ بعد، حاول مرة أخرى", "info");
+      onShowToast("لم يتم تجهيز سؤال الفراغ بعد", "info");
       setupChallenges();
       return;
     }
@@ -291,7 +389,7 @@ export default function MemorizeSession({
     }
 
     if (normalizeArabic(blankAnswerInput) === normalizeArabic(correctWord)) {
-      setIsBlankCorrect(true);
+      setIsBlankCorrect(true); onShowToast("إجابة صحيحة! 🎉", "success");
       onShowToast("إجابة صحيحة ومباركة! 🎉", "success");
     } else {
       setIsBlankCorrect(false);
@@ -305,24 +403,14 @@ export default function MemorizeSession({
     const nextNumber = currentVerse + 1;
 
     try {
-      const res = await fetch(
-        `https://api.alquran.cloud/v1/ayah/${surahId}:${nextNumber}/quran-uthmani`
-      );
+      const correctText = await fetchAyahText(nextNumber);
 
-      if (res.ok) {
-        const result = await res.json();
-        const correctText = result.data?.text || "";
-
-        if (normalizeArabic(option) === normalizeArabic(correctText)) {
-          setIsNextOptionCorrect(true);
-          onShowToast(
-            "صحيح! أنت على دراية ممتازة بالترتيب والتتالي 🌟",
-            "success"
-          );
-        } else {
-          setIsNextOptionCorrect(false);
-          onShowToast("خيار خاطئ. تذكر سياق السورة والآية التي تليها", "error");
-        }
+      if (normalizeArabic(option) === normalizeArabic(correctText)) {
+        setIsNextOptionCorrect(true);
+        onShowToast("صحيح! 🌟", "success");
+      } else {
+        setIsNextOptionCorrect(false);
+        onShowToast("خيار خاطئ. تذكر سياق السورة", "error");
       }
     } catch (err) {
       console.error(err);
@@ -337,18 +425,7 @@ export default function MemorizeSession({
 
     await onSessionComplete(planId, rating, intervalDays, nextReviewDate);
 
-    onShowToast(
-      `تم تقييم الحفظ بـ (${
-        rating === "hard"
-          ? "صعب"
-          : rating === "medium"
-          ? "متوسط"
-          : rating === "easy"
-          ? "سهل"
-          : "متقن"
-      }). المراجعة القادمة بعد ${intervalDays} يوم.`,
-      "success"
-    );
+    onShowToast(`تم التقييم. المراجعة القادمة بعد ${intervalDays} يوم.`, "success");
   };
 
   const steps: { id: StepType; label: string }[] = [
@@ -375,7 +452,9 @@ export default function MemorizeSession({
     }
 
     if (hideMode === "random") {
-      return words.map((word, index) => (index % 2 === 1 ? "●●●" : word)).join(" ");
+      return words
+        .map((word, index) => (index % 2 === 1 ? "●●●" : word))
+        .join(" ");
     }
 
     return verseText;
@@ -391,9 +470,16 @@ export default function MemorizeSession({
   };
 
   const goToVerse = (verseNumber: number) => {
-    setCurrentVerse(verseNumber);
+    const safeVerseNumber = clampNumber(
+      verseNumber,
+      safeStartVerse,
+      safeEndVerse
+    );
+
+    setCurrentVerse(safeVerseNumber);
     setActiveStep("listen");
     setHideMode("none");
+    resetExerciseState();
   };
 
   return (
@@ -408,21 +494,18 @@ export default function MemorizeSession({
           </span>
 
           <h2 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-1.5">
-            <Award className="h-5.5 w-5.5 text-emerald-600" />
+            <Award className="h-5 w-5 text-emerald-600" />
             <span>خطة: {planTitle}</span>
           </h2>
 
           <p className="text-xs text-slate-400 font-bold">
-            الموضع: سورة {surahName} (آيات {startVerse} - {endVerse}) • الآية
-            الحالية: {currentVerse}
+            الموضع: سورة {surahName} (آيات {safeStartVerse} - {safeEndVerse}) •
+            الآية الحالية: {currentVerse}
           </p>
         </div>
 
-        <button
-          onClick={onClose}
-          className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-xl border"
-        >
-          خروج من الجلسة
+        <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-xl border">
+          خروج
         </button>
       </div>
 
@@ -450,9 +533,7 @@ export default function MemorizeSession({
         {isLoading ? (
           <div className="flex flex-col items-center gap-2">
             <RefreshCw className="h-7 w-7 text-emerald-600 animate-spin" />
-            <span className="text-xs text-slate-400">
-              تحميل الآية الكريمة ومحتويات الجلسة...
-            </span>
+            <span className="text-xs text-slate-400">تحميل الآية...</span>
           </div>
         ) : (
           <div className="w-full space-y-6">
@@ -472,7 +553,7 @@ export default function MemorizeSession({
                     className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-100 dark:shadow-none"
                   >
                     <Play className="h-4 w-4 fill-white" />
-                    <span>تشغيل التلاوة الصوتية</span>
+                    <span>تشغيل التلاوة</span>
                   </button>
                 </div>
               </div>
@@ -488,10 +569,7 @@ export default function MemorizeSession({
                   {verseText}
                 </p>
 
-                <p className="text-[10px] text-emerald-600 font-bold">
-                  تكرار قراءة الآية نظراً عدة مرات يثبت شكلها في الذاكرة
-                  البصرية.
-                </p>
+                <p className="text-[10px] text-emerald-600 font-bold">تكرار القراءة يثبت الحفظ.</p>
               </div>
             )}
 
@@ -654,9 +732,7 @@ export default function MemorizeSession({
 
                     <div className="p-3 bg-white dark:bg-slate-900 border border-dashed rounded-xl min-h-[50px] flex flex-wrap gap-2 justify-center items-center">
                       {userArrangedWords.length === 0 ? (
-                        <span className="text-[10px] text-slate-400">
-                          ستظهر الكلمات المرتبة هنا...
-                        </span>
+                        <span className="text-[10px] text-slate-400">الكلمات المرتبة تظهر هنا...</span>
                       ) : (
                         userArrangedWords.map((word, index) => (
                           <span
@@ -751,11 +827,7 @@ export default function MemorizeSession({
                   <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-md font-bold inline-block mb-2">
                     الخطوة الأخيرة: صنف حفظك الآن
                   </span>
-
-                  <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                    سيقوم تطبيق أثر آية تلقائياً بجدولة تاريخ المراجعة القادم
-                    وفقاً لخوارزمية جدولة التكرار المتباعد لتعزيز ثبات الحفظ.
-                  </p>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">سيتم جدولة المراجعة القادمة تلقائياً لتعزيز ثبات الحفظ.</p>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
@@ -764,11 +836,9 @@ export default function MemorizeSession({
                     className="p-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/10 dark:hover:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-2xl transition text-center cursor-pointer space-y-1 group"
                   >
                     <span className="block text-xs font-bold text-rose-600 dark:text-rose-400">
-                      صعب جداً 🛑
+                      صعب 🛑
                     </span>
-                    <span className="block text-[8px] text-slate-400">
-                      تكرار غداً بعد يوم واحد
-                    </span>
+                    <span className="block text-[8px] text-slate-400">مراجعة غداً</span>
                   </button>
 
                   <button
@@ -776,11 +846,8 @@ export default function MemorizeSession({
                     className="p-3 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/10 dark:hover:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-2xl transition text-center cursor-pointer space-y-1 group"
                   >
                     <span className="block text-xs font-bold text-amber-600 dark:text-amber-400">
-                      متوسط ⚠️
-                    </span>
-                    <span className="block text-[8px] text-slate-400">
-                      تكرار بعد ٣ أيام
-                    </span>
+                      متوسط ⚠️</span>
+                    <span className="block text-[8px] text-slate-400">بعد ٣ أيام</span>
                   </button>
 
                   <button
@@ -788,11 +855,9 @@ export default function MemorizeSession({
                     className="p-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl transition text-center cursor-pointer space-y-1 group"
                   >
                     <span className="block text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      سهل نسبياً ✅
+                      سهل ✅
                     </span>
-                    <span className="block text-[8px] text-slate-400">
-                      تكرار بعد ٧ أيام
-                    </span>
+                    <span className="block text-[8px] text-slate-400">بعد ٧ أيام</span>
                   </button>
 
                   <button
@@ -800,11 +865,9 @@ export default function MemorizeSession({
                     className="p-3 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/10 dark:hover:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 rounded-2xl transition text-center cursor-pointer space-y-1 group"
                   >
                     <span className="block text-xs font-bold text-purple-600 dark:text-purple-400">
-                      متقن تماماً 🌟
+                      متقن 🌟
                     </span>
-                    <span className="block text-[8px] text-slate-400">
-                      تكرار متباعد ١٤ - ٣٠ يوماً
-                    </span>
+                    <span className="block text-[8px] text-slate-400">١٥+ يوم</span>
                   </button>
                 </div>
               </div>
@@ -816,16 +879,14 @@ export default function MemorizeSession({
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-1">
           <button
-            disabled={currentVerse === startVerse}
+            disabled={currentVerse === safeStartVerse}
             onClick={() => goToVerse(currentVerse - 1)}
             className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl border disabled:opacity-40"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          <span className="text-xs font-bold text-slate-400">
-            التالي والسابق بالآيات
-          </span>
+          <span className="text-xs font-bold text-slate-400">التنقل بالآيات</span>
 
           <button
             disabled={isLastVerseOfPlan}
@@ -850,12 +911,11 @@ export default function MemorizeSession({
             !isLastVerseOfPlan && (
               <button
                 onClick={() => {
-                  goToVerse(currentVerse + 1);
-                  onShowToast("الانتقال للآية التالية في الخطة", "info");
+                  goToVerse(currentVerse + 1); onShowToast("الانتقال للآية التالية", "info");
                 }}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs animate-pulse"
               >
-                <span>الانتقال للآية التالية في الخطة</span>
+                <span>الآية التالية في الخطة</span>
                 <ChevronLeft className="h-4 w-4" />
               </button>
             )

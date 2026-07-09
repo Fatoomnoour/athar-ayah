@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+@theme {
+  --font-sans: "Cairo", sans-serif;
+  --font-quran: "Amiri", serif;
+  
+  --color-primary: #0F5C4D;
+  --color-header: #0B2F2B;
+  --color-success: #DDF4EA;
+  --color-ivory: #FBF8F0;
+  --color-gold: #C79A3B;
+  --color-text-main: #1D2B27;
+  --color-text-sec: #6F7D78;
+  --color-border-main: #E4E8E5;
+
+  /* Dark mode */
+  --color-dark-bg: #0E1715;
+  --color-dark-card: #15231F;
+  --color-dark-mushaf: #1D2924;
+  --color-dark-text: #F3EFE6;
+  --color-dark-sec: #A8B5AF;
+  --color-dark-border: #2C3D36;
+  --color-dark-green: #31C48D;
+  --color-dark-gold: #D8B15B;
+}
+
+body {
+  @apply bg-ivory text-text-main dark:bg-dark-bg dark:text-dark-text selection:bg-primary/20 dark:selection:bg-dark-green/20;
+}
+
+/* Custom scrollbars and styling for RTL Quran experience */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

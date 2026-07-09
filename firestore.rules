@@ -2,39 +2,147 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // User Profiles and their subcollections
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+
       match /notes/{noteId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
       match /bookmarks/{bookmarkId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
       match /memorizationPlans/{planId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
       match /readingProgress/{progressId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
     }
-    
-    // Groups
+
     match /groups/{groupId} {
-      // Anyone authenticated can read a group if they are a member, or to check join code
-      allow read: if request.auth != null;
-      // Anyone authenticated can create a group
-      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
-      // Only members or creators can update
-      allow update: if request.auth != null && (request.auth.uid in resource.data.memberIds || request.auth.uid == resource.data.createdBy);
-      // Only creators can delete
-      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
-      
+
+      function groupData() {
+        return get(/databases/$(database)/documents/groups/$(groupId)).data;
+      }
+
+      function oldMemberIds() {
+        return resource.data.memberIds is list ? resource.data.memberIds : [];
+      }
+
+      function newMemberIds() {
+        return request.resource.data.memberIds is list ? request.resource.data.memberIds : [];
+      }
+
+      function isGroupMember() {
+        return isSignedIn()
+          && request.auth.uid in oldMemberIds();
+      }
+
+      function isGroupAdmin() {
+        return isSignedIn()
+          && (
+            request.auth.uid == resource.data.adminId
+            || request.auth.uid == resource.data.createdBy
+          );
+      }
+
+      function isJoiningSelf() {
+        return isSignedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'memberIds',
+            'members',
+            'updatedAt'
+          ])
+          && newMemberIds().hasAll(oldMemberIds())
+          && request.auth.uid in newMemberIds()
+          && (
+            request.auth.uid in oldMemberIds()
+            || newMemberIds().size() == oldMemberIds().size() + 1
+          );
+      }
+
+      // Required for searching by joinCode.
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.adminId == request.auth.uid
+        && request.resource.data.memberIds is list
+        && request.auth.uid in request.resource.data.memberIds;
+
+      // Join group or admin update.
+      allow update: if isJoiningSelf() || isGroupAdmin();
+
+      allow delete: if isGroupAdmin();
+
+      match /members/{memberId} {
+        allow read: if isSignedIn();
+
+        allow create, update: if isSignedIn()
+          && memberId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid;
+
+        allow delete: if isSignedIn()
+          && (memberId == request.auth.uid || request.auth.uid == groupData().adminId || request.auth.uid == groupData().createdBy);
+      }
+
       match /reflections/{reflectionId} {
-        allow read: if request.auth != null; 
-        allow write: if request.auth != null && request.auth.uid == request.resource.data.userId; 
+
+        function isReflectionMember() {
+          return isSignedIn()
+            && request.auth.uid in groupData().memberIds;
+        }
+
+        function isReflectionAdmin() {
+          return isSignedIn()
+            && (
+              request.auth.uid == groupData().adminId
+              || request.auth.uid == groupData().createdBy
+            );
+        }
+
+        function changedOnlyReaction() {
+          return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'reactionUserIds',
+            'updatedAt'
+          ]);
+        }
+
+        function changedOnlyComments() {
+          return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'comments',
+            'updatedAt'
+          ]);
+        }
+
+        function ownerUpdateWithoutPin() {
+          return request.auth.uid == resource.data.userId
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isPinned']);
+        }
+
+        allow read: if isReflectionMember();
+
+        allow create: if isReflectionMember()
+          && request.resource.data.userId == request.auth.uid;
+
+        allow update: if isReflectionMember()
+          && (
+            isReflectionAdmin()
+            || ownerUpdateWithoutPin()
+            || changedOnlyReaction()
+            || changedOnlyComments()
+          );
+
+        allow delete: if isReflectionAdmin()
+          || request.auth.uid == resource.data.userId;
       }
     }
   }

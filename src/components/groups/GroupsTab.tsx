@@ -75,10 +75,15 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
 
   const handleJoinGroup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!joinCode.trim()) {
+      onShowToast("يرجى إدخال رمز الانضمام", "error");
+      return;
+    }
+
     if (!currentUser) return;
     
     try {
-      await joinGroup(currentUser.id, joinCode, currentUser.displayName || currentUser.name || "عضو");
+      await joinGroup(currentUser.id, joinCode.trim().toUpperCase(), currentUser.displayName || currentUser.name || "عضو");
       setIsJoining(false);
       setJoinCode("");
       fetchGroups();
@@ -164,7 +169,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
           <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">الانضمام لحلقة</h3>
           <div className="mb-4">
             <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">رمز الدعوة السري</label>
-            <input required type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm uppercase" />
+            <input required type="text" value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm uppercase text-center tracking-widest" />
           </div>
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setIsJoining(false)} className="px-4 py-2 text-slate-500 font-bold text-sm">إلغاء</button>
@@ -187,7 +192,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
             <div 
               key={group.id} 
               onClick={() => setActiveGroup(group)}
-              className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition flex flex-col justify-between h-full"
+              className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition flex flex-col justify-between h-full group"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -200,7 +205,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                 <p className="text-xs text-slate-500 mt-1 line-clamp-2">{group.description}</p>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50">
-                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 group-hover:text-emerald-500 transition">
                   <BookOpen className="h-4 w-4" /> 
                   سورة {group.surahName} (الآيات {group.verseRange})
                 </p>

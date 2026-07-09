@@ -710,6 +710,7 @@ export default function App() {
                     onShowToast={handleShowToast}
                     onRefreshStats={fetchStats}
                     onNavigateToReader={handleNavigateToReader}
+                    onNavigateToTab={(tab) => setActiveTab(tab as AppTab)}
                   />
                 )}
 

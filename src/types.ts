@@ -22,11 +22,13 @@ export interface QuranNote {
   tags: string[];
   color?: string;
   pinned: boolean;
+  // pinnedAt is a Firestore Timestamp, so it can be `any` or `firebase.firestore.Timestamp`
+  pinnedAt?: any;
   isFavorite: boolean;
   isPrivate?: boolean;
   status?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: any;
+  updatedAt: any;
 }
 
 export interface Bookmark {
@@ -70,6 +72,7 @@ export interface ReadingProgress {
   lastReadDate?: string;
   khatmahPercentage?: number;
   treeLevel?: number;
+  completedChallengeIds?: string[];
   challenges?: Challenge[];
   
   updatedAt: string;
@@ -122,8 +125,8 @@ export interface GroupReflection {
   surahId: number;
   surahName: string;
   verseRange: string;
-  reflectionText: string;
-  reactions: number;
+  reflectionText: string; 
+  reactionUserIds?: string[];
   isPinned: boolean;
   createdAt: string;
 }

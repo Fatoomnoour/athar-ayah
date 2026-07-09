@@ -3,7 +3,7 @@ import {
   Plus, Calendar, Check, Trash2, Award, BookOpen, AlertCircle, 
   TrendingUp, CheckCircle2, RefreshCw, Star, Trash, Sparkles
 } from "lucide-react";
-import { MemorizationPlan, User, RevisionSession } from "../types";
+import { MemorizationPlan, User, RevisionSession, QuranNote } from "../types";
 import SpacedRepetitionExplanation from "./SpacedRepetitionExplanation";
 import { formatFirestoreDate } from "../utils/dateUtils";
 import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
@@ -42,6 +42,13 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
     setEndVerse(selectedSurah?.verses || 1);
   }, [selectedSurahId]);
 
+  const getSurahMaxVerse = (surahId: number) => {
+    const surah = SURAHS.find(s => s.id === surahId);
+    return surah ? surah.verses : 1;
+  };
+
+  const selectedSurahMaxVerse = getSurahMaxVerse(selectedSurahId);
+
   const fetchPlans = async () => {
     if (!currentUser) return;
     setIsLoading(true);
@@ -57,11 +64,29 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
 
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !title.trim()) return;
+    if (!currentUser || !title.trim()) {
+      onShowToast("يرجى إدخال عنوان للخطة.", "error");
+      return;
+    }
+
+    const maxVerseForSelectedSurah = getSurahMaxVerse(selectedSurahId);
+    const safeStartVerse = Math.max(1, Math.min(Number(startVerse), maxVerseForSelectedSurah));
+    const safeEndVerse = Math.max(safeStartVerse, Math.min(Number(endVerse), maxVerseForSelectedSurah));
+
+    if (Number(startVerse) !== safeStartVerse || Number(endVerse) !== safeEndVerse) {
+      onShowToast(`عدد آيات سورة ${SURAHS.find(s => s.id === selectedSurahId)?.name} هو ${maxVerseForSelectedSurah} آية فقط. برجاء اختيار آيات من 1 إلى ${maxVerseForSelectedSurah}.`, "error");
+      return;
+    }
+
+    if (safeStartVerse > safeEndVerse) {
+      onShowToast("آية البداية لا يمكن أن تكون أكبر من آية النهاية.", "error");
+      return;
+    }
     
     setIsSubmitting(true);
     try {
       const surahName = SURAHS.find(s => s.id === selectedSurahId)?.name || "";
+
       await createMemorizationPlan(currentUser.id, {
         userId: currentUser.id,
         title,
@@ -69,8 +94,8 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
         surahName,
         startVerse: Number(startVerse),
         endVerse: Number(endVerse),
-        completed: false,
-        intervalDays: 1,
+        completed: false, // Plans are not completed upon creation
+        intervalDays: 1, // Default interval
         nextReviewDate: new Date().toISOString()
       });
 
@@ -164,14 +189,40 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
     return { todayReviews, upcomingReviews, overdueReviews, masteredReviews };
   };
 
+  const handleCorrectPlan = async (plan: MemorizationPlan) => {
+    if (!currentUser) return;
+    const maxVerseForPlanSurah = getSurahMaxVerse(plan.surahId);
+    if (!maxVerseForPlanSurah) {
+        onShowToast("لا يمكن تصحيح الخطة: عدد آيات السورة غير معروف.", "error");
+        return;
+    }
+
+    const newStartVerse = Math.max(1, Math.min(plan.startVerse, maxVerseForPlanSurah));
+    const newEndVerse = Math.max(newStartVerse, Math.min(plan.endVerse, maxVerseForPlanSurah));
+
+    if (newStartVerse === plan.startVerse && newEndVerse === plan.endVerse) {
+        onShowToast("الخطة صحيحة بالفعل أو تم تصحيحها مسبقاً.", "info");
+        return;
+    }
+
+    try {
+        await updateMemorizationPlan(currentUser.id, plan.id, { startVerse: newStartVerse, endVerse: newEndVerse });
+        onShowToast("تم تصحيح نطاق الآيات في الخطة بنجاح.", "success");
+        fetchPlans(); // Re-fetch to update UI
+    } catch (err) {
+        console.error("Error correcting plan:", err);
+        onShowToast("فشل تصحيح الخطة.", "error");
+    }
+};
+
   if (isLoading) {
     return <div className="p-8 text-center text-slate-500 font-bold">جاري تحميل الخطط...</div>;
   }
-
   const categories = getStatusCategories();
-
-  const renderPlanCard = (plan: MemorizationPlan) => (
-    <div key={plan.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 hover:shadow-md transition">
+  const renderPlanCard = (plan: MemorizationPlan) => {
+    const maxVerseForPlanSurah = getSurahMaxVerse(plan.surahId);
+    const isInvalidRange = plan.endVerse > maxVerseForPlanSurah || plan.startVerse < 1 || plan.startVerse > plan.endVerse;
+    return (<div key={plan.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 hover:shadow-md transition">
       <div className="flex items-start justify-between">
         <div>
           <h4 className="font-bold text-slate-800 dark:text-slate-200">{plan.title}</h4>
@@ -181,33 +232,43 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
           <Trash className="h-4 w-4" />
         </button>
       </div>
-      
-      {reviewPlanId === plan.id ? (
-        <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl space-y-3 animate-in fade-in">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300 text-center mb-2">كيف كان حفظك؟</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button onClick={() => handleReviewScore(plan.id, "hard")} className="p-2 text-xs font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400">صعب<span className="block text-[10px] font-normal opacity-70">غداً</span></button>
-            <button onClick={() => handleReviewScore(plan.id, "medium")} className="p-2 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400">متوسط<span className="block text-[10px] font-normal opacity-70">بعد ٣ أيام</span></button>
-            <button onClick={() => handleReviewScore(plan.id, "easy")} className="p-2 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400">جيد<span className="block text-[10px] font-normal opacity-70">بعد ٧ أيام</span></button>
-            <button onClick={() => handleReviewScore(plan.id, "mastered")} className="p-2 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400">متقن<span className="block text-[10px] font-normal opacity-70">١٥+ يوم</span></button>
+      <>
+        {reviewPlanId === plan.id ? (
+          <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl space-y-3 animate-in fade-in">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 text-center mb-2">كيف كان حفظك؟</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button onClick={() => handleReviewScore(plan.id, "hard")} className="p-2 text-xs font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400">صعب<span className="block text-[10px] font-normal opacity-70">غداً</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "medium")} className="p-2 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400">متوسط<span className="block text-[10px] font-normal opacity-70">بعد ٣ أيام</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "easy")} className="p-2 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400">جيد<span className="block text-[10px] font-normal opacity-70">بعد ٧ أيام</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "mastered")} className="p-2 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400">متقن<span className="block text-[10px] font-normal opacity-70">١٥+ يوم</span></button>
+            </div>
+            <button onClick={() => setReviewPlanId(null)} className="w-full text-xs text-slate-400 hover:text-slate-600 mt-2">إلغاء</button>
           </div>
-          <button onClick={() => setReviewPlanId(null)} className="w-full text-xs text-slate-400 hover:text-slate-600 mt-2">إلغاء</button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-[10px] font-medium text-slate-400">
-            {plan.nextReviewDate ? `المراجعة: ${formatFirestoreDate(plan.nextReviewDate)}` : "بانتظار المراجعة الأولى"}
-          </div>
-          <button 
-            onClick={() => setReviewPlanId(plan.id)}
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 px-3 py-1.5 rounded-lg transition"
-          >
-            قيم المراجعة
-          </button>
-        </div>
-      )}
-    </div>
-  );
+        ) : (
+          <>
+            {isInvalidRange && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl text-xs mb-3">
+                <AlertCircle className="h-4 w-4 inline-block ml-1" />
+                هذه الخطة تحتوي على نطاق آيات غير صحيح. سورة {plan.surahName} عدد آياتها {maxVerseForPlanSurah} آية فقط.
+                <button onClick={() => handleCorrectPlan(plan)} className="block mt-2 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-800 dark:text-rose-300 font-bold hover:bg-rose-200">تصحيح الخطة</button>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-[10px] font-medium text-slate-400">
+                {plan.nextReviewDate ? `المراجعة: ${formatFirestoreDate(plan.nextReviewDate)}` : "بانتظار المراجعة الأولى"}
+              </div>
+              <button 
+                onClick={() => setReviewPlanId(plan.id)}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 px-3 py-1.5 rounded-lg transition"
+              >
+                قيم المراجعة
+              </button>
+            </div>
+          </>
+        )}
+    </>
+    </div>);
+  };
 
   return (
     <div className="space-y-8 font-sans" dir="rtl">
@@ -242,7 +303,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">السورة</label>
-              <select value={selectedSurahId} onChange={e => {
+              <select value={selectedSurahId} onChange={e => { // Clamps endVerse and startVerse when surah changes
                   const newSurahId = Number(e.target.value);
                   setSelectedSurahId(newSurahId);
                   const surahInfo = SURAHS.find(s => s.id === newSurahId);
@@ -251,8 +312,10 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
               }} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm">
                 {SURAHS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
+              <p className="text-[9px] text-slate-400 mt-1">عدد آيات هذه السورة: {selectedSurahMaxVerse} آية</p>
             </div>
             <div>
+              {/* startVerse input */}
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">من الآية</label>
               <input type="text" inputMode="numeric" min={1} max={Number(endVerse) > 1 ? Number(endVerse) - 1 : 1} value={startVerse} 
                 onChange={e => {
@@ -264,11 +327,13 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
                 onBlur={(e) => {
                   let val = parseInt(e.target.value);
                   if (isNaN(val) || val < 1) val = 1;
-                  if (val >= Number(endVerse)) val = Number(endVerse) > 1 ? Number(endVerse) - 1 : 1;
+                  if (val > selectedSurahMaxVerse) val = selectedSurahMaxVerse; // Clamp to surah max
+                  if (val >= Number(endVerse) && Number(endVerse) > 1) val = Number(endVerse) - 1; // Ensure start < end
                   setStartVerse(val);
                 }}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
             </div>
+            {/* endVerse input */}
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">إلى الآية</label>
               <input type="text" inputMode="numeric" min={Number(startVerse)} max={SURAHS.find(s => s.id === selectedSurahId)?.verses || 1} value={endVerse} 
@@ -280,10 +345,8 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
                 }}
                 onBlur={(e) => {
                   const maxVerse = SURAHS.find(s => s.id === selectedSurahId)?.verses || 1;
-                  let val = parseInt(e.target.value);
-                  if (isNaN(val)) {
-                    val = maxVerse;
-                  }
+                  let val = parseInt(e.target.value) || maxVerse; // Default to max if empty or NaN
+                  
                   if (val < Number(startVerse)) {
                     val = Number(startVerse);
                   }
