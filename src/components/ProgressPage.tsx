@@ -207,6 +207,52 @@ export default function ProgressPage({
 
       {activeTab === "journey" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* PHASE 1: Hero Action Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1 text-right">
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white">أكمل أثر اليوم</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                ابدأ بخطوة صغيرة اليوم، واقرأ وردك وتدبر آياتك وراجع حفظك.
+              </p>
+            </div>
+            <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4 p-4 md:p-0 bg-slate-50 dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent rounded-2xl md:rounded-none border md:border-0 border-slate-100 dark:border-slate-800">
+              <div className="relative w-24 h-24">
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-100 dark:text-slate-800"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  ></path>
+                  <path
+                    className="text-emerald-500"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeDasharray="0, 100" // Placeholder for daily progress
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  ></path>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">0</span>
+                  <span className="text-xs text-slate-400">/ {progress?.dailyGoalVerses || 50}</span>
+                </div>
+              </div>
+              <div className="text-center md:text-right">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200">وردك اليومي</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">تابع قراءة الآيات المستهدفة لليوم.</p>
+                <button
+                  onClick={openLastReadingPosition}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-2 transition"
+                >
+                  <Play className="h-4 w-4 fill-white" />
+                  <span>تابع من آخر موضع</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <ProgressTab
             currentUser={currentUser}
             onRefreshStats={onRefreshStats}
