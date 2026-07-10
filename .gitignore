@@ -21,3 +21,9 @@ groups-*-fix/
 project-tree.txt
 
 backups/
+
+# Temporary maintenance scripts
+fix_*.cjs
+tracker.cjs
+update_stats.cjs
+assets/.aistudio/
