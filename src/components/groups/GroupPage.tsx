@@ -124,7 +124,19 @@ export default function GroupPage({
 
   const currentSurahId = clampSurahId((localGroup as any).surahId);
   const currentSurah = getSurahInfo(currentSurahId);
-  const currentVerseRange = getSafeVerseRange(currentSurahId);
+  
+  // Fix legacy groups that might have string verse ranges exceeding actual verses
+  const currentVerseRange = useMemo(() => {
+    const rawRange = (localGroup as any).verseRange;
+    if (typeof rawRange === 'string' && rawRange.includes('-')) {
+      const parts = rawRange.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).split('-');
+      const maxVerses = currentSurah.verses;
+      const start = Math.min(parseInt(parts[0].trim()) || 1, maxVerses);
+      const end = Math.min(parseInt(parts[1].trim()) || maxVerses, maxVerses);
+      return `${start} - ${end}`;
+    }
+    return getSafeVerseRange(currentSurahId);
+  }, [localGroup, currentSurahId, currentSurah]);
 
   const isAdmin =
     !!currentUser &&

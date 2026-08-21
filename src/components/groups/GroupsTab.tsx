@@ -356,7 +356,12 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                 <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 space-y-3">
                   <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 group-hover:text-emerald-500 transition">
                     <BookOpen className="h-4 w-4" /> 
-                    سورة {group.surahName} (الآيات {group.verseRange})
+                    سورة {group.surahName} (الآيات: {group.verseRange.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).split('-').map(v => {
+                      const num = parseInt(v.trim());
+                      const surah = SURAH_LIST.find(s => s.name === group.surahName || s.id === (group as any).surahId);
+                      const max = surah ? surah.verses : 286;
+                      return !isNaN(num) && num > max ? max : v.trim();
+                    }).join(' - ')})
                   </p>
                   <div className="flex items-center justify-end gap-2">
                     {admin ? (

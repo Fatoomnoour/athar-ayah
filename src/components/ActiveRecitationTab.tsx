@@ -166,7 +166,7 @@ export default function ActiveRecitationTab({
   const selectedSurahInfo = SURAH_LIST.find((surah) => surah.id === surahId);
   const selectedSurahName = selectedSurahInfo?.name || "الفاتحة";
   const maxVerses =
-    selectedSurahInfo?.verses || SURAH_VERSE_COUNTS[surahId - 1] || 7;
+    SURAH_LIST.find((s) => s.id === surahId)?.verses || SURAH_VERSE_COUNTS[surahId - 1] || 7;
 
   const currentVerse = sessionVerses[currentVerseIndex];
   const words = useMemo(
@@ -185,10 +185,16 @@ export default function ActiveRecitationTab({
   const currentLevelConfig = getLevelConfig(hideLevel);
 
   useEffect(() => {
-    const newMax = SURAH_VERSE_COUNTS[surahId - 1] || 7;
+    const newMax = SURAH_LIST.find(s => s.id === surahId)?.verses || SURAH_VERSE_COUNTS[surahId - 1] || 7;
     setStartVerse(1);
     setEndVerse(newMax);
   }, [surahId]);
+
+  const clampNumber = (val: any, min: number, max: number) => {
+    const num = Number(val);
+    if (isNaN(num)) return min;
+    return Math.max(min, Math.min(max, num));
+  };
 
   const resetCurrentAyahState = () => {
     setManuallyRevealedWords(new Set());
@@ -212,7 +218,7 @@ export default function ActiveRecitationTab({
 
   const startSession = async () => {
     const safeSurahId = clampNumber(surahId, 1, 114);
-    const safeMaxVerses = SURAH_VERSE_COUNTS[safeSurahId - 1] || 7;
+    const safeMaxVerses = SURAH_LIST.find((s) => s.id === safeSurahId)?.verses || SURAH_VERSE_COUNTS[safeSurahId - 1] || 7;
     const safeStartVerse = clampNumber(startVerse, 1, safeMaxVerses);
     const safeEndVerse = clampNumber(endVerse, safeStartVerse, safeMaxVerses);
 

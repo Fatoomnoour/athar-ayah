@@ -176,6 +176,18 @@ export function getSurahName(surahId: number): string {
   return surah ? surah.name : "";
 }
 
+export function getSurahMaxVerse(surahId: number): number {
+  const safeSurahId = Math.max(1, Math.min(114, Number(surahId) || 1));
+  return SURAH_LIST.find(s => s.id === safeSurahId)?.verses || SURAH_VERSE_COUNTS[safeSurahId - 1] || 1;
+}
+
+export function clampVerseRange(surahId: number, startVerse: number, endVerse: number): { start: number; end: number } {
+  const maxVerse = getSurahMaxVerse(surahId);
+  const safeStart = Math.max(1, Math.min(maxVerse, Number(startVerse) || 1));
+  const safeEnd = Math.max(safeStart, Math.min(maxVerse, Number(endVerse) || maxVerse));
+  return { start: safeStart, end: safeEnd };
+}
+
 // Spaced revision algorithm helper based on rating
 export function calculateNextReview(rating: "hard" | "medium" | "easy" | "mastered", currentInterval: number = 0): {
   intervalDays: number;

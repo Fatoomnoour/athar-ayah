@@ -9,6 +9,7 @@ import {
 import {
   calculateNextReview,
   SURAH_VERSE_COUNTS,
+  SURAH_LIST,
 } from "../utils/quranUtils";
 
 interface MemorizeSessionProps {
@@ -136,7 +137,7 @@ export default function MemorizeSession({
   onShowToast,
   onPlayAyah,
 }: MemorizeSessionProps) {
-  const maxVerseForSurah = SURAH_VERSE_COUNTS[surahId - 1] || endVerse || 1;
+  const maxVerseForSurah = SURAH_LIST.find((s) => s.id === surahId)?.verses || SURAH_VERSE_COUNTS[surahId - 1] || endVerse || 1;
   const safeStartVerse = clampNumber(startVerse, 1, maxVerseForSurah);
   const safeEndVerse = clampNumber(endVerse, safeStartVerse, maxVerseForSurah);
 
