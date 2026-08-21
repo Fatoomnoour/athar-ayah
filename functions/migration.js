@@ -108,6 +108,28 @@ exports.migrateGroupVerseRanges = functions.https.onCall(async (data, context) =
   } catch (error) {
     console.error('Migration error:', error);
     
+    // Send Telegram Alert if configured
+    const botToken = functions.config().telegram?.bot_token;
+    const chatId = functions.config().telegram?.chat_id;
+    
+    if (botToken && chatId) {
+      try {
+        const fetch = require('node-fetch');
+        const message = `🚨 *Athar Ayah Alert*\n\n*Action:* Migration Failed\n*User:* ${context.auth ? context.auth.token.email : 'Unknown'}\n*Error:* ${error.message}`;
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (telegramError) {
+        console.error('Failed to send Telegram alert:', telegramError);
+      }
+    }
+
     // Attempt to write Audit Log for failure
     try {
       await admin.firestore().collection('auditLogs').add({
