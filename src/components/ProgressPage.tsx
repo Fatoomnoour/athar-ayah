@@ -38,7 +38,8 @@ import {
 } from "../services/firestoreService";
 
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../utils/quranUtils";
-import BookmarksTab, { QuranNote } from "./BookmarksTab";
+import BookmarksTab from "./BookmarksTab";
+import { QuranNote } from "../types";
 import ProgressTab from "./ProgressTab";
 import { User, MemorizationPlan, ReadingProgress } from "../types";
 import confetti from "canvas-confetti";

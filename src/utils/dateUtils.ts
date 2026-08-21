@@ -31,9 +31,10 @@ function toSafeDate(dateValue: DateLike): Date | null {
     // Firestore Timestamp-like object with toDate()
     if (
       typeof dateValue === "object" &&
-      typeof dateValue.toDate === "function"
+      "toDate" in dateValue &&
+      typeof (dateValue as any).toDate === "function"
     ) {
-      return dateValue.toDate();
+      return (dateValue as any).toDate();
     }
 
     // JS Date

@@ -39,6 +39,7 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg,woff,woff2,json}'],
+          maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15MB for large json files
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/api\.alquran\.cloud\/v1\/.*/i,

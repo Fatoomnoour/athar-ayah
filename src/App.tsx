@@ -12,17 +12,19 @@ import {
 } from "lucide-react";
 
 import Header from "./components/Header";
-import NotesTab from "./components/NotesTab";
-import BookmarksTab from "./components/BookmarksTab";
-import MemorizationTab from "./components/MemorizationTab";
-import QuranReader from "./components/QuranReader";
-import AudioPlayer from "./components/AudioPlayer";
-import MemorizeSession from "./components/MemorizeSession";
-import ActiveRecitationTab from "./components/ActiveRecitationTab";
-import GroupsTab from "./components/groups/GroupsTab";
-import ProgressPage from "./components/ProgressPage";
-import SettingsPage from "./components/SettingsPage";
-import AuthPage from "./components/AuthPage";
+import { lazy, Suspense } from "react";
+
+const NotesTab = lazy(() => import("./components/NotesTab"));
+const BookmarksTab = lazy(() => import("./components/BookmarksTab"));
+const MemorizationTab = lazy(() => import("./components/MemorizationTab"));
+const QuranReader = lazy(() => import("./components/QuranReader"));
+const AudioPlayer = lazy(() => import("./components/AudioPlayer"));
+const MemorizeSession = lazy(() => import("./components/MemorizeSession"));
+const ActiveRecitationTab = lazy(() => import("./components/ActiveRecitationTab"));
+const GroupsTab = lazy(() => import("./components/groups/GroupsTab"));
+const ProgressPage = lazy(() => import("./components/ProgressPage"));
+const SettingsPage = lazy(() => import("./components/SettingsPage"));
+const AuthPage = lazy(() => import("./components/AuthPage"));
 import Toast, { ToastType } from "./components/Toast";
 import OfflineIndicator from "./components/OfflineIndicator";
 
@@ -456,6 +458,7 @@ export default function App() {
             : "max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6"
         }`}
       >
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div></div>}>
         {!activeMemoPlan && !isReaderFocus && (
           <div className="bg-gradient-to-l from-emerald-950 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm border border-emerald-900/40 relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="absolute right-[-10px] top-[-10px] font-serif text-7xl text-white/5 select-none font-bold">
@@ -673,13 +676,7 @@ export default function App() {
             />
           ) : (
             <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl">
-              <React.Suspense
-                fallback={
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-                  </div>
-                }
-              >
+              <>
                 {activeTab === "reader" && (
                   <QuranReader
                     key={readerInitialPosition?.ts || "reader"}
@@ -753,10 +750,11 @@ export default function App() {
                     onRefreshStats={fetchStats}
                   />
                 )}
-              </React.Suspense>
+              </>
             </div>
           )}
         </div>
+        </Suspense>
       </main>
 
       {!activeMemoPlan && !isReaderFocus && (
