@@ -114,21 +114,21 @@ service cloud.firestore {
           && request.resource.data.userId == request.auth.uid;
 
         allow delete: if isSignedIn()
-          && (memberId == request.auth.uid || request.auth.uid == groupData().adminId || request.auth.uid == groupData().createdBy);
+          && (memberId == request.auth.uid || request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.adminId || request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy);
       }
 
       match /reflections/{reflectionId} {
 
         function isReflectionMember() {
           return isSignedIn()
-            && request.auth.uid in groupData().memberIds;
+            && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
         }
 
         function isReflectionAdmin() {
           return isSignedIn()
             && (
-              request.auth.uid == groupData().adminId
-              || request.auth.uid == groupData().createdBy
+              request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.adminId
+              || request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy
             );
         }
 
