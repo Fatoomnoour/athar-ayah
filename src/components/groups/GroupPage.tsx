@@ -20,6 +20,7 @@ import {
   toggleGroupReflectionReaction,
   updateGroupReflection,
   updateGroupWird,
+  deleteGroupReflection,
 } from "../../services/firestoreService";
 import { formatFirestoreDate } from "../../utils/dateUtils";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../../utils/quranUtils";
@@ -154,6 +155,41 @@ export default function GroupPage({
     })),
   ];
 
+  const handleRemoveMember = async (memberIdToRemove: string) => {
+    if (!isAdmin) {
+      onShowToast("صلاحية الإزالة للمشرف فقط", "error");
+      return;
+    }
+    
+    if (memberIdToRemove === currentUser?.id) {
+      onShowToast("لا يمكنك إزالة نفسك بهذه الطريقة", "info");
+      return;
+    }
+
+    const confirmed = window.confirm("هل أنت متأكد من إزالة هذا العضو من الحلقة؟");
+    if (!confirmed) return;
+
+    try {
+      const { kickGroupMember } = await import("../../services/firestoreService");
+      await kickGroupMember(localGroup.id, memberIdToRemove);
+      
+      const newMembers = displayedMembers.filter(m => m.userId !== memberIdToRemove);
+      const newMemberIds = memberIds.filter(id => id !== memberIdToRemove);
+      
+      setLocalGroup(prev => ({
+        ...prev,
+        members: newMembers,
+        memberIds: newMemberIds,
+        membersCount: newMemberIds.length
+      } as any));
+      
+      onShowToast("تم إزالة العضو بنجاح", "success");
+    } catch (err) {
+      console.error(err);
+      onShowToast("حدث خطأ أثناء إزالة العضو", "error");
+    }
+  };
+
   const sortedReflections = useMemo(() => {
     return [...reflections].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
@@ -189,7 +225,7 @@ export default function GroupPage({
     }
   };
 
-  const handleDeleteReflection = async (reflectionId: string) => {
+  const handleDeleteReflection = async (reflectionId: string, audioUrl?: string) => {
     if (!isAdmin) {
       onShowToast("لا تملك صلاحية الحذف", "error");
       return;
@@ -197,7 +233,7 @@ export default function GroupPage({
     const confirmed = window.confirm("هل أنت متأكد من حذف هذا التدبر بشكل نهائي؟");
     if (!confirmed) return;
     try {
-      await deleteGroupReflection(localGroup.id, reflectionId);
+      await deleteGroupReflection(localGroup.id, reflectionId, audioUrl);
       setReflections((prev) => prev.filter((r) => r.id !== reflectionId));
       onShowToast("تم حذف التدبر", "success");
     } catch (err) {
@@ -649,7 +685,7 @@ export default function GroupPage({
                         </span>
                         {isAdmin && (
                           <button
-                            onClick={() => handleDeleteReflection(ref.id)}
+                            onClick={() => handleDeleteReflection(ref.id, ref.audioUrl)}
                             className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-1 rounded transition"
                             title="حذف التدبر"
                           >

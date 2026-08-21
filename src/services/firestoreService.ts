@@ -456,6 +456,20 @@ async function getGroupMembersFromSubcollection(groupId: string) {
   }
 }
 
+export async function updateGroup(groupId: string, data: any) {
+  if (!db) return;
+  try {
+    const ref = doc(db, "groups", groupId);
+    await updateDoc(ref, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `groups/${groupId}`);
+    throw error;
+  }
+}
+
 export async function getUserGroups(userId: string) {
   if (!db) return [];
 
@@ -676,6 +690,38 @@ export async function archiveGroup(userId: string, groupId: string) {
   }
 }
 
+export async function kickGroupMember(groupId: string, memberIdToRemove: string) {
+  if (!db) return;
+  try {
+    const groupRef = doc(db, "groups", groupId);
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) throw new Error("Group not found");
+    
+    const data = groupSnap.data();
+    const currentMemberIds = Array.isArray(data.memberIds) ? data.memberIds : [];
+    const currentMembers = Array.isArray(data.members) ? data.members : [];
+    
+    const newMemberIds = currentMemberIds.filter(id => id !== memberIdToRemove);
+    const newMembers = currentMembers.filter(m => m.userId !== memberIdToRemove);
+    
+    const batch = writeBatch(db);
+    batch.update(groupRef, {
+      memberIds: newMemberIds,
+      members: newMembers,
+      membersCount: newMemberIds.length,
+      updatedAt: serverTimestamp(),
+    });
+    
+    const memberDocRef = doc(db, `groups/${groupId}/members`, memberIdToRemove);
+    batch.delete(memberDocRef);
+    
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `groups/${groupId}/members/${memberIdToRemove}`);
+    throw error;
+  }
+}
+
 export async function leaveGroup(userId: string, groupId: string) {
   if (!db) throw new Error("Database not connected");
   if (!userId || !groupId) throw new Error("بيانات الحلقة غير مكتملة");
@@ -819,9 +865,27 @@ export async function addGroupReflection(groupId: string, reflectionData: any, a
   }
 }
 
-export async function deleteGroupReflection(groupId: string, reflectionId: string) {
+export async function deleteGroupReflection(groupId: string, reflectionId: string, audioUrl?: string | null) {
   if (!db) return;
   try {
+    // Delete audio file from storage if it exists
+    if (audioUrl && storage) {
+      try {
+        // Extract file path from URL
+        // Example: https://firebasestorage.googleapis.com/v0/b/bucket/o/groups%2F123%2Faudio%2Fuser%2F123.webm?alt=media
+        const urlObj = new URL(audioUrl);
+        const pathMatch = urlObj.pathname.match(/o\/(.+)$/);
+        if (pathMatch && pathMatch[1]) {
+          const filePath = decodeURIComponent(pathMatch[1]);
+          const fileRef = storageRef(storage, filePath);
+          await deleteObject(fileRef);
+        }
+      } catch (e) {
+        console.warn("Could not delete audio file from storage:", e);
+        // Continue to delete the document even if audio deletion fails
+      }
+    }
+    
     const ref = doc(db, `groups/${groupId}/reflections`, reflectionId);
     await deleteDoc(ref);
   } catch (error) {
