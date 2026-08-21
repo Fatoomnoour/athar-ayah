@@ -3,6 +3,7 @@ import { User, QuranGroup } from "../../types";
 import { Users, Plus, Key, BookOpen, CalendarDays, Trash2, LogOut } from "lucide-react";
 import GroupPage from "./GroupPage";
 import { getUserGroups, createGroup, joinGroup, archiveGroup, leaveGroup } from "../../services/firestoreService";
+import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../../utils/quranUtils";
 
 interface GroupsTabProps {
   currentUser: User | null;
@@ -265,11 +266,36 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">الورد الحالي (السورة)</label>
-              <input required type="text" value={newGroupData.surahName} onChange={e => setNewGroupData({...newGroupData, surahName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
+              <select
+                required
+                value={newGroupData.surahId}
+                onChange={e => {
+                  const surahId = Number(e.target.value);
+                  const surah = SURAH_LIST.find(s => s.id === surahId);
+                  if (surah) {
+                    const maxVerses = SURAH_VERSE_COUNTS[surahId - 1] || surah.verses;
+                    setNewGroupData({
+                      ...newGroupData,
+                      surahId,
+                      surahName: surah.name,
+                      verseRange: `1 - ${maxVerses}`
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm"
+              >
+                {SURAH_LIST.map((surah) => (
+                  <option key={surah.id} value={surah.id}>
+                    {surah.id}. {surah.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">نطاق الآيات</label>
-              <input required type="text" value={newGroupData.verseRange} onChange={e => setNewGroupData({...newGroupData, verseRange: e.target.value})} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
+              <div className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-slate-500">
+                {newGroupData.verseRange}
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-3">

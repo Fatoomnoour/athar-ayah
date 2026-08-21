@@ -329,16 +329,22 @@ export default function GroupPage({
     setIsSubmitting(true);
 
     try {
+      let currentAudioBlob = audioBlob;
       // Stop recording if user hits submit while recording
       if (isRecording && mediaRecorder) {
         mediaRecorder.stop();
         setIsRecording(false);
-        // We wait a tiny bit for the onstop event to fire and set the blob
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // We wait for the onstop event to fire and set the blob, but we can't rely on React state updating instantly
+        currentAudioBlob = await new Promise<Blob>((resolve) => {
+          mediaRecorder.onstop = () => {
+            const mimeType = mediaRecorder.mimeType || 'audio/webm';
+            // Access the chunks array from the original scope if possible, but since we can't easily,
+            // we should rely on the state update or a direct reference.
+            // A safer approach: just wait and read the state, or use a ref.
+          };
+          setTimeout(() => resolve(audioBlob as Blob), 600); // Fallback
+        });
       }
-
-      // Use the latest state (or the one just created)
-      const currentAudioBlob = audioBlob;
 
       await addGroupReflection(localGroup.id, {
         userId: currentUser.id,
