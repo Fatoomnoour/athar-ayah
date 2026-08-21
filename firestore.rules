@@ -22,8 +22,14 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
-      match /readingProgress/{progressId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+            match /readingProgress/{progressId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId;
+      }
+
+      match /fcmTokens/{tokenId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId;
       }
     }
 

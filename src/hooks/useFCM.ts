@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getToken, onMessage } from 'firebase/messaging';
-import { messaging } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { messaging, db, auth } from '../lib/firebase';
 import { trackNotificationEnabled, logError } from '../lib/analytics';
 
 export const useFCM = () => {
@@ -16,6 +17,20 @@ export const useFCM = () => {
         if (currentToken) {
           console.log('FCM Token generated');
           setFcmToken(currentToken);
+          
+          // Save token to Firestore if user is logged in
+          if (auth?.currentUser && db) {
+            try {
+              await setDoc(doc(db, 'users', auth.currentUser.uid, 'fcmTokens', currentToken), {
+                token: currentToken,
+                updatedAt: new Date().toISOString(),
+                device: navigator.userAgent
+              }, { merge: true });
+            } catch (e) {
+              console.error('Error saving FCM token to Firestore', e);
+            }
+          }
+          
           trackNotificationEnabled();
           return true;
         } else {
