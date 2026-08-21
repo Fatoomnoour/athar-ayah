@@ -16,7 +16,8 @@ import {
   arrayRemove,
   increment,
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { db, storage, handleFirestoreError, OperationType } from "../lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import {
   QuranNote,
   ReadingProgress,
@@ -773,14 +774,29 @@ export async function getGroupReflections(groupId: string) {
   }
 }
 
-export async function addGroupReflection(groupId: string, reflectionData: any) {
+export async function uploadAudio(file: Blob, path: string): Promise<string> {
+  if (!storage) throw new Error("Storage not initialized");
+  const fileRef = storageRef(storage, path);
+  await uploadBytes(fileRef, file);
+  return await getDownloadURL(fileRef);
+}
+
+export async function addGroupReflection(groupId: string, reflectionData: any, audioBlob?: Blob) {
   if (!db) return;
 
   try {
+    let audioUrl = reflectionData.audioUrl;
+    
+    if (audioBlob && storage) {
+      const fileName = `groups/${groupId}/audio/${Date.now()}_${reflectionData.userId}.webm`;
+      audioUrl = await uploadAudio(audioBlob, fileName);
+    }
+
     const ref = collection(db, `groups/${groupId}/reflections`);
 
     await addDoc(ref, {
       ...reflectionData,
+      audioUrl: audioUrl || null,
       reactionUserIds: Array.isArray(reflectionData.reactionUserIds)
         ? reflectionData.reactionUserIds
         : [],
@@ -797,6 +813,17 @@ export async function addGroupReflection(groupId: string, reflectionData: any) {
       OperationType.CREATE,
       `groups/${groupId}/reflections`
     );
+    throw error;
+  }
+}
+
+export async function deleteGroupReflection(groupId: string, reflectionId: string) {
+  if (!db) return;
+  try {
+    const ref = doc(db, `groups/${groupId}/reflections`, reflectionId);
+    await deleteDoc(ref);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `groups/${groupId}/reflections/${reflectionId}`);
     throw error;
   }
 }

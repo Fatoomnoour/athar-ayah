@@ -126,6 +126,7 @@ export interface GroupReflection {
   surahName: string;
   verseRange: string;
   reflectionText: string; 
+  audioUrl?: string;
   reactionUserIds?: string[];
   isPinned: boolean;
   createdAt: string;

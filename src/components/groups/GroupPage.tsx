@@ -9,7 +9,10 @@ import {
   MessageCircle,
   Heart,
   Star,
+  Trash2,
   Send,
+  Mic,
+  Square,
 } from "lucide-react";
 import {
   getGroupReflections,
@@ -96,6 +99,12 @@ export default function GroupPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Audio Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
   const [activeDiscussionId, setActiveDiscussionId] = useState<string | null>(
     null
   );
@@ -180,6 +189,79 @@ export default function GroupPage({
     }
   };
 
+  const handleDeleteReflection = async (reflectionId: string) => {
+    if (!isAdmin) {
+      onShowToast("لا تملك صلاحية الحذف", "error");
+      return;
+    }
+    const confirmed = window.confirm("هل أنت متأكد من حذف هذا التدبر بشكل نهائي؟");
+    if (!confirmed) return;
+    try {
+      await deleteGroupReflection(localGroup.id, reflectionId);
+      setReflections((prev) => prev.filter((r) => r.id !== reflectionId));
+      onShowToast("تم حذف التدبر", "success");
+    } catch (err) {
+      onShowToast("تعذر حذف التدبر", "error");
+    }
+  };
+
+  const handleDeleteComment = async (reflectionId: string, commentId: string) => {
+    if (!isAdmin) {
+      onShowToast("لا تملك صلاحية الحذف", "error");
+      return;
+    }
+    const confirmed = window.confirm("هل أنت متأكد من حذف هذا التعليق؟");
+    if (!confirmed) return;
+    
+    const reflection = reflections.find(r => r.id === reflectionId);
+    if (!reflection) return;
+    
+    const newComments = reflection.comments?.filter(c => c.id !== commentId) || [];
+    
+    try {
+      await updateGroupReflection(localGroup.id, reflectionId, { comments: newComments });
+      setReflections((prev) => prev.map((r) => r.id === reflectionId ? { ...r, comments: newComments } : r));
+      onShowToast("تم حذف التعليق", "success");
+    } catch (err) {
+      onShowToast("تعذر حذف التعليق", "error");
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (err) {
+      onShowToast("تعذر الوصول للميكروفون، يرجى السماح بذلك من إعدادات المتصفح", "error");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const clearAudio = () => {
+    setAudioBlob(null);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+  };
+
   const handleSubmitReflection = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -190,8 +272,8 @@ export default function GroupPage({
 
     const trimmedReflection = newReflection.trim();
 
-    if (!trimmedReflection) {
-      onShowToast("اكتب التدبر أولًا", "info");
+    if (!trimmedReflection && !audioBlob) {
+      onShowToast("اكتب التدبر أو سجل رسالة صوتية أولًا", "info");
       return;
     }
 
@@ -208,9 +290,10 @@ export default function GroupPage({
         reactionUserIds: [],
         comments: [],
         isPinned: false,
-      } as any);
+      } as any, audioBlob || undefined);
 
       setNewReflection("");
+      clearAudio();
       await fetchReflections();
       onShowToast("تم نشر التدبر في الحلقة", "success");
     } catch (err) {
@@ -431,17 +514,48 @@ export default function GroupPage({
 
             <form onSubmit={handleSubmitReflection}>
               <textarea
-                required
+                required={!audioBlob}
                 value={newReflection}
                 onChange={(e) => setNewReflection(e.target.value)}
-                placeholder="ماذا تعلمت من الآيات؟ ما المعنى الذي أثّر فيك؟"
+                placeholder="ماذا تعلمت من الآيات؟ ما المعنى الذي أثّر فيك؟ (أو سجل تدبرك صوتياً)"
                 className="w-full h-24 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl resize-none font-medium text-sm focus:border-emerald-500 outline-none transition"
               />
 
-              <div className="flex justify-end mt-3">
+              {audioUrl && (
+                <div className="mt-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <audio src={audioUrl} controls className="h-8 flex-1" />
+                  <button
+                    type="button"
+                    onClick={clearAudio}
+                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
+                    title="حذف التسجيل"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center gap-2">
+                  {!audioUrl && (
+                    <button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${
+                        isRecording 
+                          ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 animate-pulse" 
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      {isRecording ? "إيقاف التسجيل..." : "تسجيل صوتي"}
+                    </button>
+                  )}
+                </div>
+
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (newReflection.trim() === "" && !audioBlob)}
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-4 w-4" />
@@ -505,9 +619,20 @@ export default function GroupPage({
                         </div>
                       </div>
 
-                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                        {formatFirestoreDate((ref as any).createdAt)}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                          {formatFirestoreDate((ref as any).createdAt)}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteReflection(ref.id)}
+                            className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-1 rounded transition"
+                            title="حذف التدبر"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -516,9 +641,21 @@ export default function GroupPage({
                         {ref.verseRange || currentVerseRange}
                       </span>
 
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                        {ref.reflectionText || "لا يوجد نص للتدبر"}
-                      </p>
+                      {ref.reflectionText && (
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap mb-2">
+                          {ref.reflectionText}
+                        </p>
+                      )}
+                      
+                      {ref.audioUrl && (
+                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                          <audio src={ref.audioUrl} controls className="w-full h-8" />
+                        </div>
+                      )}
+                      
+                      {!ref.reflectionText && !ref.audioUrl && (
+                        <p className="text-sm text-slate-400 italic">لا يوجد محتوى للتدبر</p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 pt-2">
@@ -592,9 +729,20 @@ export default function GroupPage({
                                     {comment.userName || "عضو"}
                                   </span>
 
-                                  <span className="text-[10px] text-slate-400">
-                                    {formatFirestoreDate(comment.createdAt)}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-400">
+                                      {formatFirestoreDate(comment.createdAt)}
+                                    </span>
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => handleDeleteComment(ref.id, comment.id)}
+                                        className="text-red-400 hover:text-red-600 transition"
+                                        title="حذف التعليق"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
