@@ -26,7 +26,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
     icon: "🍃",
     surahId: 1,
     surahName: "الفاتحة",
-    verseRange: "١ - ٧",
+    verseRange: "1 - 7",
     goalType: "daily" as "daily" | "weekly",
     maxMembers: 20
   });
@@ -293,8 +293,54 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">نطاق الآيات</label>
-              <div className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-slate-500">
-                {newGroupData.verseRange}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={newGroupData.verseRange.split('-')[0]?.trim() || '1'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^[0-9]+$/.test(val)) {
+                      const currentEnd = newGroupData.verseRange.split('-')[1]?.trim() || SURAH_VERSE_COUNTS[newGroupData.surahId - 1];
+                      setNewGroupData({...newGroupData, verseRange: `${val} - ${currentEnd}`});
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const maxVerse = SURAH_VERSE_COUNTS[newGroupData.surahId - 1] || 7;
+                    const currentEnd = parseInt(newGroupData.verseRange.split('-')[1]?.trim()) || maxVerse;
+                    let val = parseInt(e.target.value);
+                    if (isNaN(val) || val < 1) val = 1;
+                    if (val > maxVerse) val = maxVerse;
+                    if (val > currentEnd) val = currentEnd;
+                    setNewGroupData({...newGroupData, verseRange: `${val} - ${currentEnd}`});
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-center"
+                  placeholder="من"
+                />
+                <span className="text-slate-400 font-bold">-</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={newGroupData.verseRange.split('-')[1]?.trim() || SURAH_VERSE_COUNTS[newGroupData.surahId - 1] || '7'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^[0-9]+$/.test(val)) {
+                      const currentStart = newGroupData.verseRange.split('-')[0]?.trim() || '1';
+                      setNewGroupData({...newGroupData, verseRange: `${currentStart} - ${val}`});
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const maxVerse = SURAH_VERSE_COUNTS[newGroupData.surahId - 1] || 7;
+                    const currentStart = parseInt(newGroupData.verseRange.split('-')[0]?.trim()) || 1;
+                    let val = parseInt(e.target.value);
+                    if (isNaN(val)) val = maxVerse;
+                    if (val > maxVerse) val = maxVerse;
+                    if (val < currentStart) val = currentStart;
+                    setNewGroupData({...newGroupData, verseRange: `${currentStart} - ${val}`});
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-center"
+                  placeholder="إلى"
+                />
               </div>
             </div>
           </div>

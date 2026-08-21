@@ -121,6 +121,8 @@ export default function GroupPage({
   const [weeklySurahId, setWeeklySurahId] = useState<number>(
     clampSurahId((group as any).surahId)
   );
+  const [weeklyStartVerse, setWeeklyStartVerse] = useState<number | string>(1);
+  const [weeklyEndVerse, setWeeklyEndVerse] = useState<number | string>(7);
 
   const currentSurahId = clampSurahId((localGroup as any).surahId);
   const currentSurah = getSurahInfo(currentSurahId);
@@ -212,7 +214,19 @@ export default function GroupPage({
 
   useEffect(() => {
     setLocalGroup(group);
-    setWeeklySurahId(clampSurahId((group as any).surahId));
+    const sId = clampSurahId((group as any).surahId);
+    setWeeklySurahId(sId);
+    
+    // Parse the current verse range to pre-fill the update form
+    const rawRange = (group as any).verseRange;
+    if (typeof rawRange === 'string' && rawRange.includes('-')) {
+      const parts = rawRange.replace(/[٠-٩]/g, (d: string) => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).split('-');
+      setWeeklyStartVerse(parseInt(parts[0].trim()) || 1);
+      setWeeklyEndVerse(parseInt(parts[1].trim()) || getMaxVerseForSurah(sId));
+    } else {
+      setWeeklyStartVerse(1);
+      setWeeklyEndVerse(getMaxVerseForSurah(sId));
+    }
   }, [group]);
 
   useEffect(() => {
@@ -530,7 +544,11 @@ export default function GroupPage({
 
     const safeSurahId = clampSurahId(weeklySurahId);
     const selectedSurah = getSurahInfo(safeSurahId);
-    const safeVerseRange = getSafeVerseRange(safeSurahId);
+    const maxVerse = getMaxVerseForSurah(safeSurahId);
+    
+    const safeStart = Math.max(1, Math.min(maxVerse, Number(weeklyStartVerse) || 1));
+    const safeEnd = Math.max(safeStart, Math.min(maxVerse, Number(weeklyEndVerse) || maxVerse));
+    const safeVerseRange = `${safeStart} - ${safeEnd}`;
 
     setIsSavingWird(true);
 
@@ -912,8 +930,46 @@ export default function GroupPage({
                       ))}
                     </select>
 
-                    <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/30 rounded-lg px-3 py-2 text-center">
-                      الآيات: {getSafeVerseRange(weeklySurahId)}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={weeklyStartVerse}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^[0-9]+$/.test(val)) setWeeklyStartVerse(val);
+                        }}
+                        onBlur={(e) => {
+                          const maxVerse = getMaxVerseForSurah(weeklySurahId);
+                          let val = parseInt(e.target.value);
+                          if (isNaN(val) || val < 1) val = 1;
+                          if (val > maxVerse) val = maxVerse;
+                          if (val > Number(weeklyEndVerse)) val = Number(weeklyEndVerse);
+                          setWeeklyStartVerse(val);
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 text-center"
+                        placeholder="من آية"
+                      />
+                      <span className="text-slate-400 font-bold">-</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={weeklyEndVerse}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^[0-9]+$/.test(val)) setWeeklyEndVerse(val);
+                        }}
+                        onBlur={(e) => {
+                          const maxVerse = getMaxVerseForSurah(weeklySurahId);
+                          let val = parseInt(e.target.value);
+                          if (isNaN(val)) val = maxVerse;
+                          if (val > maxVerse) val = maxVerse;
+                          if (val < Number(weeklyStartVerse)) val = Number(weeklyStartVerse);
+                          setWeeklyEndVerse(val);
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 text-center"
+                        placeholder="إلى آية"
+                      />
                     </div>
 
                     <div className="flex gap-2">
