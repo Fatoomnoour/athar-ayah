@@ -239,6 +239,38 @@ export default function SettingsPage({
                 type="button"
                 onClick={async () => {
                   try {
+                    const { collection, query, orderBy, limit, getDocs } = await import('firebase/firestore');
+                    const { db } = await import('../lib/firebase');
+                    if (db) {
+                      const logsRef = collection(db, 'auditLogs');
+                      const q = query(logsRef, orderBy('timestamp', 'desc'), limit(5));
+                      const snapshot = await getDocs(q);
+                      
+                      if (snapshot.empty) {
+                        alert('لا توجد سجلات صيانة سابقة.');
+                      } else {
+                        let logText = 'آخر 5 عمليات صيانة:\n\n';
+                        snapshot.forEach(doc => {
+                          const data = doc.data();
+                          const date = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString('ar-EG') : 'غير معروف';
+                          logText += `- التاريخ: ${date}\n  بواسطة: ${data.executorEmail}\n  الحالة: ${data.status}\n  النتيجة: ${data.details?.updatedCount || 0} حلقة محدثة\n\n`;
+                        });
+                        alert(logText);
+                      }
+                    }
+                  } catch (err) {
+                    alert('لا تملك صلاحية قراءة السجلات أو حدث خطأ.');
+                  }
+                }}
+                className="w-full px-4 py-2 mb-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                عرض سجلات الصيانة السابقة
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
                     const { getFunctions, httpsCallable } = await import('firebase/functions');
                     const { app } = await import('../lib/firebase');
                     const functions = getFunctions(app);

@@ -91,9 +91,37 @@ exports.migrateGroupVerseRanges = functions.https.onCall(async (data, context) =
       await batch.commit();
     }
     
+    // Write Audit Log for success
+    await db.collection('auditLogs').add({
+      action: 'migrateGroupVerseRanges',
+      executedBy: context.auth.uid,
+      executorEmail: context.auth.token.email,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'success',
+      details: {
+        updatedCount: updatedCount,
+        totalGroupsChecked: snapshot.size
+      }
+    });
+    
     return { success: true, updatedCount };
   } catch (error) {
     console.error('Migration error:', error);
+    
+    // Attempt to write Audit Log for failure
+    try {
+      await admin.firestore().collection('auditLogs').add({
+        action: 'migrateGroupVerseRanges',
+        executedBy: context.auth ? context.auth.uid : 'unknown',
+        executorEmail: context.auth ? context.auth.token.email : 'unknown',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'failure',
+        error: error.message || 'Unknown error'
+      });
+    } catch (logError) {
+      console.error('Failed to write audit log:', logError);
+    }
+    
     throw new functions.https.HttpsError('internal', 'An error occurred during migration.');
   }
 });

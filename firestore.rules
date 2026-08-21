@@ -33,6 +33,11 @@ service cloud.firestore {
       }
     }
 
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn() && (request.auth.token.email == 'fatoomnoour@gmail.com' || request.auth.token.email == 'admin@athar-ayah.com');
+      allow write: if false; // Only Cloud Functions (Admin SDK) can write to auditLogs
+    }
+
     match /groups/{groupId} {
 
       function groupData() {
