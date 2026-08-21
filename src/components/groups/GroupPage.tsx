@@ -230,12 +230,25 @@ export default function GroupPage({
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      
+      // Determine supported mime type
+      let mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/ogg')) mimeType = 'audio/ogg';
+        else mimeType = ''; // fallback to default
+      }
+      
+      const options = mimeType ? { mimeType } : undefined;
+      const recorder = new MediaRecorder(stream, options);
       const chunks: BlobPart[] = [];
 
-      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach(track => track.stop());
@@ -280,6 +293,17 @@ export default function GroupPage({
     setIsSubmitting(true);
 
     try {
+      // Stop recording if user hits submit while recording
+      if (isRecording && mediaRecorder) {
+        mediaRecorder.stop();
+        setIsRecording(false);
+        // We wait a tiny bit for the onstop event to fire and set the blob
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Use the latest state (or the one just created)
+      const currentAudioBlob = audioBlob;
+
       await addGroupReflection(localGroup.id, {
         userId: currentUser.id,
         userName: getUserDisplayName(currentUser),
@@ -290,7 +314,7 @@ export default function GroupPage({
         reactionUserIds: [],
         comments: [],
         isPinned: false,
-      } as any, audioBlob || undefined);
+      } as any, currentAudioBlob || undefined);
 
       setNewReflection("");
       clearAudio();

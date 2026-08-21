@@ -788,7 +788,9 @@ export async function addGroupReflection(groupId: string, reflectionData: any, a
     let audioUrl = reflectionData.audioUrl;
     
     if (audioBlob && storage) {
-      const fileName = `groups/${groupId}/audio/${Date.now()}_${reflectionData.userId}.webm`;
+      // Must match Storage Rules: groups/{groupId}/audio/{userId}/{fileName}
+      const extension = audioBlob.type.includes('mp4') ? 'mp4' : (audioBlob.type.includes('ogg') ? 'ogg' : 'webm');
+      const fileName = `groups/${groupId}/audio/${reflectionData.userId}/${Date.now()}.${extension}`;
       audioUrl = await uploadAudio(audioBlob, fileName);
     }
 
