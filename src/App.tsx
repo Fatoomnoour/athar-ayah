@@ -100,11 +100,15 @@ export default function App() {
 
     const unsubscribe = subscribeToAuthChanges((firebaseUser) => {
       if (firebaseUser) {
+        const adminEmails = ["fatoomnoour@gmail.com", "admin@athar-ayah.com"];
+        const isAdmin = firebaseUser.email ? adminEmails.includes(firebaseUser.email.toLowerCase()) : false;
+        
         setCurrentUser({
           id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email || "مستخدم",
           email: firebaseUser.email || "",
           photoURL: firebaseUser.photoURL || undefined,
+          isAdmin
         });
       } else {
         setCurrentUser(null);

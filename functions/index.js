@@ -97,3 +97,6 @@ exports.dailyProgressReminder = functions.pubsub.schedule('0 17 * * *')
       return null;
     }
   });
+
+const migration = require('./migration');
+exports.migrateGroupVerseRanges = migration.migrateGroupVerseRanges;
