@@ -190,11 +190,11 @@ export default function ProgressPage({
   dailyScore = Math.min(dailyScore, DAILY_SCORE_TARGET);
 
   const treeStages = [
-    { level: 1, name: "بذرة", icon: "🌱", minPoints: 0, maxPoints: 99 },
-    { level: 2, name: "نبتة", icon: "🌿", minPoints: 100, maxPoints: 299 },
-    { level: 3, name: "غرسة", icon: "🪴", minPoints: 300, maxPoints: 699 },
-    { level: 4, name: "شجرة", icon: "🌳", minPoints: 700, maxPoints: 1499 }, 
-    { level: 5, name: "ظلّ وثمار", icon: "🍎", minPoints: 1500, maxPoints: Infinity }
+    { level: 1, name: "بذرة النية", icon: "🌱", minPoints: 0, maxPoints: 99 },
+    { level: 2, name: "نبتة الإقبال", icon: "🌿", minPoints: 100, maxPoints: 299 },
+    { level: 3, name: "غرسة التعاهد", icon: "🪴", minPoints: 300, maxPoints: 699 },
+    { level: 4, name: "شجرة الثبات", icon: "🌳", minPoints: 700, maxPoints: 1499 }, 
+    { level: 5, name: "أصلها ثابت وفرعها في السماء", icon: "🌴", minPoints: 1500, maxPoints: Infinity }
   ];
 
   const currentTreeStage = treeStages.slice().reverse().find(s => points >= s.minPoints) || treeStages[0];
@@ -254,17 +254,19 @@ export default function ProgressPage({
   };
 
   // Next Best Action (simplified)
-  let nextBestActionMessage = "ابدأ تحدي اليوم لفتح أول إنجاز";
+  let nextBestActionMessage = "خطوتك الأولى اليوم: ابدأ وردك لفتح أبواب الإنجاز.";
   if (!hasTodayReading) {
-    nextBestActionMessage = "ابدأ قراءة ورد اليوم لتحافظ على أثرك";
+    nextBestActionMessage = "لم تقرأ وردك اليوم بعد. قليل دائم خير من كثير منقطع، ابدأ الآن!";
   } else if (!hasTodayTadabbur) {
-    nextBestActionMessage = "اكتب خاطرة تدبر واحدة لفتح وسام 'متدبر اليوم'";
+    nextBestActionMessage = "قراءتك ممتازة! أضف خاطرة تدبر لتسجيل أثر الآيات في قلبك اليوم.";
   } else if (!hasTodayReview && plans.length > 0) {
-    nextBestActionMessage = "راجع خطة حفظك لتثبيت وردك";
+    nextBestActionMessage = "لا تنسَ معاهدة القرآن، راجع خطة حفظك لتثبيت ما حفظت.";
   } else if (dailyScore < DAILY_SCORE_TARGET) {
-    nextBestActionMessage = `بقيت لك ${DAILY_SCORE_TARGET - dailyScore} نقطة لإكمال إنجاز اليوم`;
+    nextBestActionMessage = `أنت قريب جداً! تفصلك ${DAILY_SCORE_TARGET - dailyScore} نقطة عن إكمال مهام اليوم بنجاح.`;
   } else if (points < 100) {
-    nextBestActionMessage = "واصل التقدم لتنمو شجرتك إلى 'نبتة'";
+    nextBestActionMessage = "أتممت مهام اليوم! استمر غداً لتنمو شجرتك وتزدهر أكثر.";
+  } else {
+    nextBestActionMessage = "ما شاء الله! يوم حافل بالإنجاز والتدبر، تقبل الله منك.";
   }
 
   return (

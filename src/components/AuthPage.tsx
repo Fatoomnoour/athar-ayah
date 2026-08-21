@@ -17,7 +17,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError("");
     if (!isFirebaseConfigured) {
-      setError("إعدادات Firebase غير مكتملة، تواصل مع الدعم الفني أو راجع .env.local");
+      setError("إعدادات Firebase غير مكتملة، يرجى إعداد متغيرات البيئة قبل النشر.");
       return;
     }
     if (!email || !password || (isRegister && !name)) {
@@ -37,13 +37,13 @@ export default function AuthPage() {
       
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
-        setError("هذا البريد الإلكتروني مسجل مسبقًا.");
+        setError("هذا البريد الإلكتروني مسجل مسبقًا، جرب تسجيل الدخول بدلاً من ذلك.");
       } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-        setError("بيانات الدخول غير صحيحة.");
+        setError("بيانات الدخول غير صحيحة، يرجى التأكد من البريد وكلمة المرور.");
       } else if (err.code === "auth/weak-password") {
-        setError("كلمة المرور ضعيفة جدًا.");
+        setError("كلمة المرور ضعيفة جدًا، يرجى استخدام 6 أحرف على الأقل.");
       } else {
-        setError(err.message || "حدث خطأ ما أثناء المصادقة");
+        setError(err.message || "حدث خطأ ما أثناء المصادقة، تأكد من اتصالك بالإنترنت.");
       }
     } finally {
       setIsLoading(false);
@@ -53,7 +53,7 @@ export default function AuthPage() {
   const handleGoogleAuth = async () => {
     setError("");
     if (!isFirebaseConfigured) {
-      setError("إعدادات Firebase غير مكتملة، تواصل مع الدعم الفني أو راجع .env.local");
+      setError("إعدادات Firebase غير مكتملة، يرجى إعداد متغيرات البيئة قبل النشر.");
       return;
     }
     setIsLoading(true);

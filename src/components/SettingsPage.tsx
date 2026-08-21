@@ -49,10 +49,18 @@ export default function SettingsPage({
       if (granted) {
         setNotificationsEnabled(true);
         if (currentUser) localStorage.setItem(`notifs_${currentUser.id}`, "true");
-        onShowToast("تم تفعيل الإشعارات بنجاح", "success");
-        scheduleLocalNotification("أهلاً بك في أثر آية!", { body: "سيتم تذكيرك بوردك اليومي والمراجعة من هنا." });
+        onShowToast("تم تفعيل الإشعارات بنجاح. سيتم تذكيرك يومياً.", "success");
+        
+        // Use scheduleLocalNotification from utils if available, or fallback to direct notification
+        try {
+          scheduleLocalNotification("أهلاً بك في أثر آية!", { body: "سيتم تذكيرك بوردك اليومي والمراجعة من هنا." });
+        } catch (e) {
+          if (Notification.permission === "granted") {
+            new Notification("أهلاً بك في أثر آية!", { body: "سيتم تذكيرك بوردك اليومي والمراجعة من هنا.", icon: "/icons/icon-192x192.jpg" });
+          }
+        }
       } else {
-        onShowToast("يرجى السماح للإشعارات من إعدادات المتصفح", "error");
+        onShowToast("يرجى السماح للإشعارات من إعدادات المتصفح أو النظام", "error");
       }
     } else {
       setNotificationsEnabled(false);

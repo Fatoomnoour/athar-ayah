@@ -1,8 +1,8 @@
-import { getUserGroups, createGroup, joinGroup, archiveGroup, leaveGroup } from "../../services/firestoreService";
 import React, { useState, useEffect } from "react";
 import { User, QuranGroup } from "../../types";
 import { Users, Plus, Key, BookOpen, CalendarDays, Trash2, LogOut } from "lucide-react";
 import GroupPage from "./GroupPage";
+import { getUserGroups, createGroup, joinGroup, archiveGroup, leaveGroup } from "../../services/firestoreService";
 
 interface GroupsTabProps {
   currentUser: User | null;

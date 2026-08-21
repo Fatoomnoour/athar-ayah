@@ -736,7 +736,7 @@ export default function GroupPage({
                 displayedMembers.map((member) => (
                   <div
                     key={member.userId}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-2">
                       <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">
@@ -748,15 +748,26 @@ export default function GroupPage({
                       </span>
                     </div>
 
-                    {member.role === "admin" ? (
-                      <span className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold">
-                        مشرف
-                      </span>
-                    ) : (
-                      <span className="text-[9px] bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
-                        عضو
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isAdmin && member.userId !== currentUser?.id && member.role !== "admin" && (
+                        <button
+                          onClick={() => handleRemoveMember(member.userId)}
+                          className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="إزالة العضو"
+                        >
+                          إزالة
+                        </button>
+                      )}
+                      {member.role === "admin" ? (
+                        <span className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold">
+                          مشرف
+                        </span>
+                      ) : (
+                        <span className="text-[9px] bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
+                          عضو
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

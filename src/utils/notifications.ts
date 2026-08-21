@@ -22,7 +22,10 @@ export function scheduleLocalNotification(title: string, options?: NotificationO
   }
   
   new Notification(title, {
-    icon: "/logo.jpg",
+    icon: "/icons/icon-192x192.jpg",
+    badge: "/icons/icon-192x192.jpg",
+    dir: "rtl",
+    lang: "ar",
     ...options
   });
 }
