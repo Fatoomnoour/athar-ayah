@@ -752,7 +752,7 @@ export default function GroupPage({
                       {isAdmin && member.userId !== currentUser?.id && member.role !== "admin" && (
                         <button
                           onClick={() => handleRemoveMember(member.userId)}
-                          className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-0.5 rounded transition-opacity"
                           title="إزالة العضو"
                         >
                           إزالة
