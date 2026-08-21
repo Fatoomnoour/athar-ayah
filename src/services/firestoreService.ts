@@ -1091,3 +1091,58 @@ export async function updateAdvancedStats(
     console.error("Error updating stats", error);
   }
 }
+
+
+// =========================
+// Migrations
+// =========================
+export async function migrateGroupVerseRanges() {
+  if (!db) return { success: false, message: 'No db connection' };
+  try {
+    const groupsRef = collection(db, 'groups');
+    const snapshot = await getDocs(groupsRef);
+    let updatedCount = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      let needsUpdate = false;
+      const updates: any = {};
+      
+      if (data.verseRange && typeof data.verseRange === 'string') {
+        const arabicToEnglish = (str: string) => str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        const engRange = arabicToEnglish(data.verseRange);
+        
+        const match = engRange.match(/(\d+)\s*-\s*(\d+)/);
+        if (match && data.surahId) {
+          const start = parseInt(match[1], 10);
+          const end = parseInt(match[2], 10);
+          const maxVerses = SURAH_VERSE_COUNTS[data.surahId - 1] || 7;
+          
+          let newStart = start;
+          let newEnd = end;
+          
+          if (isNaN(newStart) || newStart < 1) newStart = 1;
+          if (isNaN(newEnd) || newEnd > maxVerses) newEnd = maxVerses;
+          if (newStart > newEnd) newStart = newEnd;
+          
+          const newRange = `${newStart} - ${newEnd}`;
+          
+          if (newRange !== data.verseRange) {
+            updates.verseRange = newRange;
+            needsUpdate = true;
+          }
+        }
+      }
+      
+      if (needsUpdate) {
+        await updateDoc(doc(db, 'groups', docSnap.id), updates);
+        updatedCount++;
+      }
+    }
+    
+    return { success: true, updatedCount };
+  } catch (error) {
+    console.error('Error migrating groups:', error);
+    return { success: false, error };
+  }
+}

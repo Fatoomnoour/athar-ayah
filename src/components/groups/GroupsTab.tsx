@@ -4,6 +4,7 @@ import { Users, Plus, Key, BookOpen, CalendarDays, Trash2, LogOut } from "lucide
 import GroupPage from "./GroupPage";
 import { getUserGroups, createGroup, joinGroup, archiveGroup, leaveGroup } from "../../services/firestoreService";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../../utils/quranUtils";
+import SurahSearchSelect from "./SurahSearchSelect";
 
 interface GroupsTabProps {
   currentUser: User | null;
@@ -266,30 +267,18 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">الورد الحالي (السورة)</label>
-              <select
-                required
+              <SurahSearchSelect
                 value={newGroupData.surahId}
-                onChange={e => {
-                  const surahId = Number(e.target.value);
-                  const surah = SURAH_LIST.find(s => s.id === surahId);
-                  if (surah) {
-                    const maxVerses = SURAH_VERSE_COUNTS[surahId - 1] || surah.verses;
-                    setNewGroupData({
-                      ...newGroupData,
-                      surahId,
-                      surahName: surah.name,
-                      verseRange: `1 - ${maxVerses}`
-                    });
-                  }
+                onChange={(surahId, surahName) => {
+                  const maxVerses = SURAH_VERSE_COUNTS[surahId - 1] || 7;
+                  setNewGroupData({
+                    ...newGroupData,
+                    surahId,
+                    surahName,
+                    verseRange: `1 - ${maxVerses}`
+                  });
                 }}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm"
-              >
-                {SURAH_LIST.map((surah) => (
-                  <option key={surah.id} value={surah.id}>
-                    {surah.id}. {surah.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">نطاق الآيات</label>

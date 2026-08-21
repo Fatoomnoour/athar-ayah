@@ -2,7 +2,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Only authenticated users can access the storage
-    match /groups/{groupId}/audio/{fileName} {
+    match /groups/{groupId}/audio/{userId}/{fileName} {
       // Any authenticated user can read (could be restricted to group members, but simple auth is fine for now)
       allow read: if request.auth != null;
       

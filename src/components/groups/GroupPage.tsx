@@ -356,20 +356,11 @@ export default function GroupPage({
 
     try {
       let currentAudioBlob = audioBlob;
-      // Stop recording if user hits submit while recording
-      if (isRecording && mediaRecorder) {
-        mediaRecorder.stop();
-        setIsRecording(false);
-        // We wait for the onstop event to fire and set the blob, but we can't rely on React state updating instantly
-        currentAudioBlob = await new Promise<Blob>((resolve) => {
-          mediaRecorder.onstop = () => {
-            const mimeType = mediaRecorder.mimeType || 'audio/webm';
-            // Access the chunks array from the original scope if possible, but since we can't easily,
-            // we should rely on the state update or a direct reference.
-            // A safer approach: just wait and read the state, or use a ref.
-          };
-          setTimeout(() => resolve(audioBlob as Blob), 600); // Fallback
-        });
+      // Prevent submit if currently recording
+      if (isRecording) {
+        onShowToast("يرجى إيقاف التسجيل الصوتي أولاً قبل النشر", "info");
+        setIsSubmitting(false);
+        return;
       }
 
       await addGroupReflection(localGroup.id, {
@@ -917,18 +908,14 @@ export default function GroupPage({
                       اختر السورة
                     </label>
 
-                    <select
+                    <SurahSearchSelect
                       value={weeklySurahId}
-                      onChange={(e) => setWeeklySurahId(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
-                    >
-                      {SURAH_LIST.map((surah) => (
-                        <option key={surah.id} value={surah.id}>
-                          {surah.id}. {surah.name} -{" "}
-                          {getMaxVerseForSurah(surah.id)} آية
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(surahId) => {
+                        setWeeklySurahId(surahId);
+                        setWeeklyStartVerse(1);
+                        setWeeklyEndVerse(getMaxVerseForSurah(surahId));
+                      }}
+                    />
 
                     <div className="flex items-center gap-2">
                       <input
