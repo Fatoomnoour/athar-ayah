@@ -206,10 +206,10 @@ export default function ProgressPage({
 
 
   const dailyTasks = [ // Updated icons for consistency
-    { id: 'read_wird', title: 'قراءة ورد اليوم', description: 'اقرأ عددًا من الآيات اليوم', isCompleted: hasTodayReading, icon: BookOpen, action: openLastReadingPosition },
-    { id: 'tadabbur', title: 'خاطرة تدبر', description: 'اكتب خاطرة واحدة على الأقل', isCompleted: hasTodayTadabbur, icon: Edit, action: () => onNavigateToTab("notes") },
-    { id: 'hifz_review', title: 'مراجعة الحفظ', description: 'راجع آيات من خطتك الحالية', isCompleted: hasTodayReview, icon: Repeat, action: () => setActiveTab("plans") },
-    { id: 'save_position', title: 'تثبيت الموضع', description: 'سجّل آخر موضع وصلت إليه', isCompleted: hasTodaySavedPosition, icon: MapPin, action: () => onNavigateToReader(progress?.lastSurahId, progress?.lastVerseNumber) },
+    { id: 'read_wird', title: language === 'ar' ? 'قراءة ورد اليوم' : 'Read Today\'s Wird', description: language === 'ar' ? 'اقرأ عددًا من الآيات اليوم' : 'Read a number of verses today', isCompleted: hasTodayReading, icon: BookOpen, action: openLastReadingPosition },
+    { id: 'tadabbur', title: language === 'ar' ? 'خاطرة تدبر' : 'Reflection Note', description: language === 'ar' ? 'اكتب خاطرة واحدة على الأقل' : 'Write at least one reflection', isCompleted: hasTodayTadabbur, icon: Edit, action: () => onNavigateToTab("notes") },
+    { id: 'hifz_review', title: language === 'ar' ? 'مراجعة الحفظ' : 'Memorization Review', description: language === 'ar' ? 'راجع آيات من خطتك الحالية' : 'Review verses from your current plan', isCompleted: hasTodayReview, icon: Repeat, action: () => setActiveTab("plans") },
+    { id: 'save_position', title: language === 'ar' ? 'تثبيت الموضع' : 'Save Position', description: language === 'ar' ? 'سجّل آخر موضع وصلت إليه' : 'Save the last position you reached', isCompleted: hasTodaySavedPosition, icon: MapPin, action: () => onNavigateToReader(progress?.lastSurahId, progress?.lastVerseNumber) },
   ];
 
   const weeklyChallenges = [
@@ -257,33 +257,47 @@ export default function ProgressPage({
   };
 
   // Next Best Action (simplified)
-  let nextBestActionMessage = "خطوتك الأولى اليوم: ابدأ وردك لفتح أبواب الإنجاز.";
+  let nextBestActionMessage = language === 'ar'
+    ? 'خطوتك الأولى اليوم: ابدأ وردك لفتح أبواب الإنجاز.'
+    : 'Your first step today: start your wird to unlock progress.';
   if (!hasTodayReading) {
-    nextBestActionMessage = "لم تقرأ وردك اليوم بعد. قليل دائم خير من كثير منقطع، ابدأ الآن!";
+    nextBestActionMessage = language === 'ar'
+      ? 'لم تقرأ وردك اليوم بعد. قليل دائم خير من كثير منقطع، ابدأ الآن!'
+      : 'You have not read your wird today yet. Start now with a small consistent step.';
   } else if (!hasTodayTadabbur) {
-    nextBestActionMessage = "قراءتك ممتازة! أضف خاطرة تدبر لتسجيل أثر الآيات في قلبك اليوم.";
+    nextBestActionMessage = language === 'ar'
+      ? 'قراءتك ممتازة! أضف خاطرة تدبر لتسجيل أثر الآيات في قلبك اليوم.'
+      : 'Great reading progress! Add a reflection to capture today\'s spiritual impact.';
   } else if (!hasTodayReview && plans.length > 0) {
-    nextBestActionMessage = "لا تنسَ معاهدة القرآن، راجع خطة حفظك لتثبيت ما حفظت.";
+    nextBestActionMessage = language === 'ar'
+      ? 'لا تنسَ معاهدة القرآن، راجع خطة حفظك لتثبيت ما حفظت.'
+      : 'Do not forget your review session. Revisit your memorization plan to strengthen retention.';
   } else if (dailyScore < DAILY_SCORE_TARGET) {
-    nextBestActionMessage = `أنت قريب جداً! تفصلك ${DAILY_SCORE_TARGET - dailyScore} نقطة عن إكمال مهام اليوم بنجاح.`;
+    nextBestActionMessage = language === 'ar'
+      ? `أنت قريب جداً! تفصلك ${DAILY_SCORE_TARGET - dailyScore} نقطة عن إكمال مهام اليوم بنجاح.`
+      : `You are very close! Only ${DAILY_SCORE_TARGET - dailyScore} points remain to complete today's tasks.`;
   } else if (points < 100) {
-    nextBestActionMessage = "أتممت مهام اليوم! استمر غداً لتنمو شجرتك وتزدهر أكثر.";
+    nextBestActionMessage = language === 'ar'
+      ? 'أتممت مهام اليوم! استمر غداً لتنمو شجرتك وتزدهر أكثر.'
+      : 'You completed today\'s tasks! Keep going tomorrow to grow your tree further.';
   } else {
-    nextBestActionMessage = "ما شاء الله! يوم حافل بالإنجاز والتدبر، تقبل الله منك.";
+    nextBestActionMessage = language === 'ar'
+      ? 'ما شاء الله! يوم حافل بالإنجاز والتدبر، تقبل الله منك.'
+      : 'MashaAllah! A day full of achievement and reflection. May Allah accept it from you.';
   }
 
   return (
     <div
-      className="space-y-6 text-right font-sans max-w-5xl mx-auto"
-      dir="rtl"
+      className={`space-y-6 font-sans max-w-5xl mx-auto ${language === 'ar' ? 'text-right' : 'text-left'}`}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white tracking-tight">
-            رحلتي مع القرآن
+            {t("progressTitle")}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
-            تتبع إنجازاتك اليومية، وردك، ونمو شجرتك الإيمانية.
+            {language === 'ar' ? 'تتبع إنجازاتك اليومية، وردك، ونمو شجرتك الإيمانية.' : 'Track your daily achievements, wird, and the growth of your faith tree.'}
           </p>
         </div>
 
@@ -292,7 +306,7 @@ export default function ProgressPage({
           className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
         >
           <Share2 className="w-5 h-5" />
-          <span>مشاركة الإنجاز</span>
+          <span>{language === 'ar' ? 'مشاركة الإنجاز' : 'Share Achievement'}</span>
         </button>
       </div>
 
@@ -305,7 +319,7 @@ export default function ProgressPage({
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            {language === "ar" ? "الإحصائيات" : "Statistics"}
+            {t("statsTab")}
           </button>
 
           <button
@@ -327,7 +341,7 @@ export default function ProgressPage({
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            {language === "ar" ? "الأوسمة والشجرة" : "Badges & Tree"}
+            {t("badgesTab")}
           </button>
 
           <button
@@ -340,7 +354,7 @@ export default function ProgressPage({
           >
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4" />
-              <span>{language === "ar" ? "المفضلة" : "Favorites"}</span>
+              <span>{t("favoritesTab")}</span>
           </div>
         </button>
       </div>
@@ -349,23 +363,23 @@ export default function ProgressPage({
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* PHASE 1 SAFE: Static Hero Action Card */}
           <div className="bg-gradient-to-l from-emerald-50 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row items-center gap-6">
-            <div className="flex-1 text-right">
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white">أكمل أثر اليوم</h2>
+            <div className={`flex-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white">{t("completeAthar")}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                ابدأ بخطوة صغيرة اليوم، واقرأ وردك وتدبر آياتك وراجع حفظك.
+                {t("completeAtharSubtitle")}
               </p>
             </div>
             <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4 p-4 md:p-0 bg-slate-50 dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent rounded-2xl md:rounded-none border md:border-0 border-slate-100 dark:border-slate-800">
-              <div className="text-center md:text-right">
-                <h4 className="font-bold text-slate-800 dark:text-slate-200">وردك اليومي</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">خطوة واحدة تقرّبك من أثر ثابت</p>
+              <div className={`text-center ${language === 'ar' ? 'md:text-right' : 'md:text-left'}`}>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200">{t("dailyWird")}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{t("dailyWirdSubtitle")}</p>
                 <button
                   type="button"
                   onClick={openLastReadingPosition}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-2 transition"
                 >
                   <Play className="h-4 w-4 fill-white" />
-                  <span>تابع من آخر موضع</span>
+                  <span>{t("continueFromLast")}</span>
                 </button>
               </div>
             </div>
@@ -381,7 +395,7 @@ export default function ProgressPage({
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden">
               <div className="flex justify-between items-start">
                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                  نسبة الختمة
+                  {t("khatmahPercentage")}
                 </span>
                 <div className="p-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl">
                   <Target className="w-5 h-5" />
@@ -405,7 +419,7 @@ export default function ProgressPage({
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                  وقت التلاوة
+                  {t("totalReadTime")}
                 </span>
                 <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl">
                   <Clock className="w-5 h-5" />
@@ -416,20 +430,20 @@ export default function ProgressPage({
                 <span className="text-3xl font-black text-slate-800 dark:text-white">
                   {hoursRead}
                 </span>
-                <span className="text-sm text-slate-500">س</span>
+                <span className="text-sm text-slate-500">{language === "ar" ? "س" : "h"}</span>
                 <span className="text-3xl font-black text-slate-800 dark:text-white ml-2">
                   {minsRead}
                 </span>
-                <span className="text-sm text-slate-500">د</span>
+                <span className="text-sm text-slate-500">{language === "ar" ? "د" : "m"}</span>
               </div>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden">
               <div className="flex justify-between items-start">
                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                  الآيات المقروءة
+                  {t("totalVersesRead")}
                 </span>
-                <div className="p-2 bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-xl">
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl">
                   <BookOpen className="w-5 h-5" />
                 </div>
               </div>
@@ -444,7 +458,7 @@ export default function ProgressPage({
             <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 rounded-2xl text-white flex flex-col justify-between relative overflow-hidden shadow-lg shadow-orange-500/20">
               <div className="flex justify-between items-start relative z-10">
                 <span className="text-sm font-bold text-white/90">
-                  أيام متتالية
+                  {t("currentStreak")}
                 </span>
                 <div className="p-2 bg-white/20 rounded-xl">
                   <Flame className="w-5 h-5 text-white" />
@@ -455,8 +469,8 @@ export default function ProgressPage({
                 <span className="text-4xl font-black">
                   {progress?.currentStreak || 0}
                 </span>
-                <span className="text-sm text-white/80 mr-2 font-medium">
-                  أيام
+                <span className={`text-sm text-white/80 ${language === "ar" ? "mr-2" : "ml-2"} font-medium`}>
+                  {t("streakDaysUnit")}
                 </span>
               </div>
 
@@ -473,22 +487,22 @@ export default function ProgressPage({
 
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                    الورد اليومي الذكي
+                    {language === "ar" ? "الورد اليومي الذكي" : "Smart Daily Wird"}
                   </h3>
                   <p className="text-sm text-slate-500">
-                    يتكيف مع قراءتك السابقة لتصل لهدفك
+                    {language === "ar" ? "يتكيف مع قراءتك السابقة لتصل لهدفك" : "Adapts to your reading pace"}
                   </p>
                 </div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 flex flex-col justify-center items-center text-center space-y-4">
                 <p className="text-slate-600 dark:text-slate-400 font-medium">
-                  هدف اليوم بناءً على سرعة قراءتك
+                  {language === "ar" ? "هدف اليوم بناءً على سرعة قراءتك" : "Today's goal based on your pace"}
                 </p>
 
                 <div className="text-4xl font-black text-emerald-600 dark:text-emerald-500">
                   {progress?.dailyGoalVerses || 50}{" "}
-                  <span className="text-lg text-slate-500">آية</span>
+                  <span className="text-lg text-slate-500">{language === "ar" ? "آية" : "verses"}</span>
                 </div>
 
                 <button
@@ -496,7 +510,7 @@ export default function ProgressPage({
                   className="px-6 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold rounded-xl w-full transition shadow-sm flex justify-center items-center gap-2"
                 >
                   <Play className="w-4 h-4 fill-current" />
-                  بدء تلاوة الورد
+                  {language === "ar" ? "بدء تلاوة الورد" : "Start Wird"}
                 </button>
               </div>
             </div>
@@ -509,10 +523,10 @@ export default function ProgressPage({
 
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                    التحديات الأسبوعية
+                    {language === "ar" ? "التحديات الأسبوعية" : "Weekly Challenges"}
                   </h3>
                   <p className="text-sm text-slate-500">
-                    شارك في التحديات لتسريع الختمة
+                    {language === "ar" ? "شارك في التحديات لتسريع الختمة" : "Participate in challenges to speed up your Khatmah"}
                   </p>
                 </div>
               </div>
@@ -521,7 +535,7 @@ export default function ProgressPage({
                 {[
                   {
                     id: "weekly_surah_kahf",
-                    title: "اقرأ سورة الكهف",
+                    title: language === "ar" ? "اقرأ سورة الكهف" : "Read Surah Al-Kahf",
                     current: progress?.completedChallengeIds?.includes("weekly_surah_kahf") ? 1 : 0,
                     target: 1,
                     reward: 50,
@@ -529,7 +543,7 @@ export default function ProgressPage({
                   },
                   {
                     id: "read_500_ayahs",
-                    title: "تلاوة 500 آية",
+                    title: language === "ar" ? "تلاوة 500 آية" : "Read 500 Verses",
                     current: progress?.completedChallengeIds?.includes("read_500_ayahs")
                       ? 500
                       : Math.min(500, progress?.totalVersesRead || 0),
@@ -550,10 +564,10 @@ export default function ProgressPage({
                         {challenge.title}
                       </span>
                       {isCompleted ? (
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> مكتمل</span>
+                        <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> {language === "ar" ? "مكتمل" : "Completed"}</span>
                       ) : (
                         <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-md">
-                          +{challenge.reward} نقطة
+                          +{challenge.reward} {language === "ar" ? "نقطة" : "pts"}
                         </span>
                       )}
                     </div>
@@ -573,7 +587,7 @@ export default function ProgressPage({
                       />
                     </div>
 
-                    <div className="text-right mt-1" dir="ltr">
+                    <div className={`mt-1 ${language === 'ar' ? 'text-right' : 'text-left'}`} dir="ltr">
                       <span className="text-[10px] text-slate-400 font-medium">
                         {challenge.current} / {challenge.target}
                       </span>
@@ -600,22 +614,22 @@ export default function ProgressPage({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 animate-in fade-in duration-500">
           <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
             <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-              خطط الحفظ والمراجعة الذكية
+              {language === "ar" ? "خطط الحفظ والمراجعة الذكية" : "Smart Memorization & Review Plans"}
             </h3>
           </div>
 
           {plans.length === 0 ? (
             <div className="text-center py-10 px-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed">
               <BookMarked className="h-10 w-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-              <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-1">لا توجد خطط حفظ بعد</h3>
+              <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-1">{language === "ar" ? "لا توجد خطط حفظ بعد" : "No memorization plans yet"}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-sm mx-auto">
-                ابدأ بإنشاء خطة حفظ مخصصة، وسنساعدك على متابعة وردك ومراجعتك بانتظام.
+                {language === "ar" ? "ابدأ بإنشاء خطة حفظ مخصصة، وسنساعدك على متابعة وردك ومراجعتك بانتظام." : "Start by creating a custom memorization plan, and we will help you track your review regularly."}
               </p>
               <button
                 onClick={() => onNavigateToTab("memorization")}
                 className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 transition shadow-sm mx-auto text-sm">
                 <Plus className="h-4 w-4" />
-                إنشاء خطة حفظ جديدة
+                {language === "ar" ? "إنشاء خطة حفظ جديدة" : "Create new plan"}
               </button>
             </div>
           ) : (
@@ -629,8 +643,7 @@ export default function ProgressPage({
                     {plan.title}
                   </div>
                   <div className="text-sm text-slate-500 mt-1">
-                    {plan.surahName} - آيات {plan.startVerse} إلى{" "}
-                    {plan.endVerse}
+                    {plan.surahName} - {language === "ar" ? "آيات" : "verses"} {plan.startVerse} {language === "ar" ? "إلى" : "to"} {plan.endVerse}
                   </div>
                 </div>
 
@@ -639,7 +652,7 @@ export default function ProgressPage({
                   className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold rounded-lg hover:bg-emerald-200 transition text-sm flex items-center gap-2 w-full sm:w-auto justify-center"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  مراجعة الآن
+                  {language === "ar" ? "مراجعة الآن" : "Review Now"}
                 </button>
               </div>
             ))
@@ -653,13 +666,13 @@ export default function ProgressPage({
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-lg"><Goal className="h-5 w-5 text-emerald-600"/>تحدي اليوم</h3>
-                <p className="text-sm text-slate-500 mt-1">خطوات صغيرة اليوم تصنع أثرًا ثابتًا في رحلتك مع القرآن</p>
+                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-lg"><Goal className="h-5 w-5 text-emerald-600"/>{language === "ar" ? "تحدي اليوم" : "Today's Challenge"}</h3>
+                <p className="text-sm text-slate-500 mt-1">{language === "ar" ? "خطوات صغيرة اليوم تصنع أثرًا ثابتًا في رحلتك مع القرآن" : "Small steps today make a lasting impact on your journey with the Quran"}</p>
               </div>
               {allDailyTasksCompleted && (
                 <div className="p-2 px-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-xl text-center font-bold text-emerald-700 dark:text-emerald-400 text-sm flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4"/>
-                  أحسنت! أتممت أثر اليوم 🌿
+                  {language === "ar" ? "أحسنت! أتممت أثر اليوم 🌿" : "Well done! You completed today's impact 🌿"}
                 </div>
               )}
             </div>
@@ -670,7 +683,7 @@ export default function ProgressPage({
                   <div className="flex items-center justify-between">
                     <div className={`p-2 rounded-lg ${task.isCompleted ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600' : 'bg-white dark:bg-slate-800 text-slate-500'}`}><task.icon className="h-5 w-5"/></div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${task.isCompleted ? 'bg-white dark:bg-slate-800 text-emerald-600' : 'bg-white dark:bg-slate-800 text-slate-500'}`}>
-                      {task.isCompleted ? 'مكتمل' : 'قيد التقدم'}
+                      {task.isCompleted ? (language === "ar" ? 'مكتمل' : 'Completed') : (language === "ar" ? 'قيد التقدم' : 'In Progress')}
                     </span>
                   </div>
                   <div>
@@ -686,8 +699,8 @@ export default function ProgressPage({
             {/* Faith Tree & Daily Points */}
             <div className="lg:col-span-1 space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 text-center">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white">رصيد أثر اليوم</h3>
-                <p className="text-[10px] text-slate-400 mb-3">أكمل مهام اليوم لتحصل على مكافأة الإنجاز</p>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white">{language === "ar" ? "رصيد أثر اليوم" : "Today's Impact Balance"}</h3>
+                <p className="text-[10px] text-slate-400 mb-3">{language === "ar" ? "أكمل مهام اليوم لتحصل على مكافأة الإنجاز" : "Complete today's tasks to get the achievement reward"}</p>
                 <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
                     <path className="text-slate-100 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3"></path>
@@ -695,18 +708,18 @@ export default function ProgressPage({
                   </svg>
                   <div className="absolute text-2xl font-black text-blue-600 dark:text-blue-400">{dailyScore}</div>
                 </div>
-                <p className="text-xs font-bold text-slate-400 mt-2">من {DAILY_SCORE_TARGET} نقطة</p>
+                <p className="text-xs font-bold text-slate-400 mt-2">{language === "ar" ? "من" : "out of"} {DAILY_SCORE_TARGET} {language === "ar" ? "نقطة" : "pts"}</p>
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 text-center">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white">شجرة الإنجاز الإيمانية</h3>
-                <p className="text-[10px] text-slate-400 mb-3">رصيد الأثر الكلي: {points} نقطة</p>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white">{language === "ar" ? "شجرة الإنجاز الإيمانية" : "Faith Achievement Tree"}</h3>
+                <p className="text-[10px] text-slate-400 mb-3">{language === "ar" ? "رصيد الأثر الكلي:" : "Total Impact Balance:"} {points} {language === "ar" ? "نقطة" : "pts"}</p>
                 <div className="text-7xl my-3 transition-transform duration-500 hover:scale-110">{currentTreeStage.icon}</div>
-                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">مستواك الحالي: {currentTreeStage.name}</p>
+                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">{language === "ar" ? "مستواك الحالي:" : "Current Level:"} {currentTreeStage.name}</p>
                 {nextTreeStage && (
                   <div className="max-w-xs mx-auto mt-2">
                     <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1">
-                      <span>التقدم للمستوى التالي</span>
+                      <span>{language === "ar" ? "التقدم للمستوى التالي" : "Progress to Next Level"}</span>
                       <span>{Math.round(treeProgress)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden" dir="ltr">
@@ -719,11 +732,11 @@ export default function ProgressPage({
 
             {/* Badges */}
             <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5">
-              <h3 className="font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2"><Award className="h-5 w-5 text-blue-500"/>الأوسمة والإنجازات</h3>
-              <p className="text-xs text-slate-500 mb-4">إنجازاتك في رحلة القرآن</p>
+              <h3 className="font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2"><Award className="h-5 w-5 text-blue-500"/>{language === "ar" ? "الأوسمة والإنجازات" : "Badges & Achievements"}</h3>
+              <p className="text-xs text-slate-500 mb-4">{language === "ar" ? "إنجازاتك في رحلة القرآن" : "Your achievements in the Quran journey"}</p>
               {Object.entries(badges).map(([category, badgeList]) => (
                 <div key={category} className="mb-5">
-                  <h4 className="text-xs font-bold text-slate-400 mb-3 capitalize">{category}</h4>
+                  <h4 className="text-xs font-bold text-slate-400 mb-3 capitalize">{language === 'ar' ? (category === 'reading' ? 'القراءة' : category === 'reflection' ? 'التدبر' : 'الحفظ') : category}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {badgeList.map(badge => {
                       const isEarned = badge.current >= badge.target;
@@ -735,9 +748,9 @@ export default function ProgressPage({
                             <div className={`p-2 rounded-lg ${isEarned ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600' : isInProgress ? 'bg-amber-100 dark:bg-amber-900 text-amber-600' : 'bg-white dark:bg-slate-800 text-slate-400 opacity-70'}`}>
                               <span className={`text-2xl ${!isEarned && 'grayscale'}`}>{badge.icon}</span>
                             </div>
-                            {isEarned && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-emerald-600">تم فتح الوسام</div>}
-                            {isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-amber-600">قيد التقدم</div>}
-                            {!isEarned && !isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-500">لم يتحقق بعد</div>}
+                            {isEarned && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-emerald-600">{language === "ar" ? "تم فتح الوسام" : "Unlocked"}</div>}
+                            {isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-amber-600">{language === "ar" ? "قيد التقدم" : "In Progress"}</div>}
+                            {!isEarned && !isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-500">{language === "ar" ? "لم يتحقق بعد" : "Not yet achieved"}</div>}
                           </div>
                           <p className="font-bold text-xs text-slate-800 dark:text-slate-200 mt-2">{badge.title}</p>
                           <p className="text-[10px] text-slate-500 dark:text-slate-400 h-5">{isEarned ? ' ' : badge.requirement}</p>
@@ -757,7 +770,7 @@ export default function ProgressPage({
 
           {/* Weekly Challenges */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><Zap className="h-5 w-5 text-amber-500"/>تحديات أسبوعية</h3>
+            <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><Zap className="h-5 w-5 text-amber-500"/>{language === "ar" ? "تحديات أسبوعية" : "Weekly Challenges"}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {weeklyChallenges.map(challenge => {
                 const isCompleted = challenge.current >= challenge.target;
@@ -766,9 +779,9 @@ export default function ProgressPage({
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-sm text-slate-800 dark:text-white">{challenge.title}</span>
                       {isCompleted ? (
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> مكتمل</span>
+                        <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> {language === "ar" ? "مكتمل" : "Completed"}</span>
                       ) : (
-                        <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-md">+{challenge.reward} نقطة</span>
+                        <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-md">+{challenge.reward} {language === "ar" ? "نقطة" : "pts"}</span>
                       )}
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden" dir="ltr">

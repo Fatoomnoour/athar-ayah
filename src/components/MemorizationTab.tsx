@@ -239,31 +239,31 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
           <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl space-y-3 animate-in fade-in">
             <p className="text-sm font-bold text-slate-700 dark:text-slate-300 text-center mb-2">كيف كان حفظك؟</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button onClick={() => handleReviewScore(plan.id, "hard")} className="p-2 text-xs font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400">صعب<span className="block text-[10px] font-normal opacity-70">غداً</span></button>
-              <button onClick={() => handleReviewScore(plan.id, "medium")} className="p-2 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400">متوسط<span className="block text-[10px] font-normal opacity-70">بعد ٣ أيام</span></button>
-              <button onClick={() => handleReviewScore(plan.id, "easy")} className="p-2 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400">جيد<span className="block text-[10px] font-normal opacity-70">بعد ٧ أيام</span></button>
-              <button onClick={() => handleReviewScore(plan.id, "mastered")} className="p-2 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400">متقن<span className="block text-[10px] font-normal opacity-70">١٥+ يوم</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "hard")} className="p-2 text-xs font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400">{language === "ar" ? "صعب" : "Hard"}<span className="block text-[10px] font-normal opacity-70">{language === "ar" ? "غداً" : "Tomorrow"}</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "medium")} className="p-2 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400">{language === "ar" ? "متوسط" : "Medium"}<span className="block text-[10px] font-normal opacity-70">{language === "ar" ? "بعد ٣ أيام" : "In 3 days"}</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "easy")} className="p-2 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400">{language === "ar" ? "جيد" : "Good"}<span className="block text-[10px] font-normal opacity-70">{language === "ar" ? "بعد ٧ أيام" : "In 7 days"}</span></button>
+              <button onClick={() => handleReviewScore(plan.id, "mastered")} className="p-2 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400">{language === "ar" ? "متقن" : "Mastered"}<span className="block text-[10px] font-normal opacity-70">{language === "ar" ? "١٥+ يوم" : "15+ days"}</span></button>
             </div>
-            <button onClick={() => setReviewPlanId(null)} className="w-full text-xs text-slate-400 hover:text-slate-600 mt-2">إلغاء</button>
+            <button onClick={() => setReviewPlanId(null)} className="w-full text-xs text-slate-400 hover:text-slate-600 mt-2">{language === "ar" ? "إلغاء" : "Cancel"}</button>
           </div>
         ) : (
           <>
             {isInvalidRange && (
               <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl text-xs mb-3">
-                <AlertCircle className="h-4 w-4 inline-block ml-1" />
-                هذه الخطة تحتوي على نطاق آيات غير صحيح. سورة {plan.surahName} عدد آياتها {maxVerseForPlanSurah} آية فقط.
-                <button onClick={() => handleCorrectPlan(plan)} className="block mt-2 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-800 dark:text-rose-300 font-bold hover:bg-rose-200">تصحيح الخطة</button>
+                <AlertCircle className={`h-4 w-4 inline-block ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                {language === "ar" ? `هذه الخطة تحتوي على نطاق آيات غير صحيح. سورة ${plan.surahName} عدد آياتها ${maxVerseForPlanSurah} آية فقط.` : `This plan contains an invalid verse range. Surah ${plan.surahName} has only ${maxVerseForPlanSurah} verses.`}
+                <button onClick={() => handleCorrectPlan(plan)} className="block mt-2 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-800 dark:text-rose-300 font-bold hover:bg-rose-200">{language === "ar" ? "تصحيح الخطة" : "Correct Plan"}</button>
               </div>
             )}
             <div className="flex items-center justify-between pt-2">
               <div className="text-[10px] font-medium text-slate-400">
-                {plan.nextReviewDate ? `المراجعة: ${formatFirestoreDate(plan.nextReviewDate)}` : "بانتظار المراجعة الأولى"}
+                {plan.nextReviewDate ? (language === "ar" ? `المراجعة: ${formatFirestoreDate(plan.nextReviewDate)}` : `Review: ${formatFirestoreDate(plan.nextReviewDate)}`) : (language === "ar" ? "بانتظار المراجعة الأولى" : "Awaiting first review")}
               </div>
               <button 
                 onClick={() => setReviewPlanId(plan.id)}
                 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 px-3 py-1.5 rounded-lg transition"
               >
-                قيم المراجعة
+                {language === "ar" ? "قيم المراجعة" : "Rate Review"}
               </button>
             </div>
           </>
@@ -273,15 +273,15 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
   };
 
   return (
-    <div className="space-y-8 font-sans" dir="rtl">
+    <div className={`space-y-8 font-sans ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={direction}>
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-emerald-600" />
-            المراجعة والتكرار المتباعد
+            {language === "ar" ? "المراجعة والتكرار المتباعد" : "Spaced Repetition Review"}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">راجع حفظك بذكاء لترسيخه في الذاكرة طويلة الأمد.</p>
+          <p className="text-sm text-slate-500 mt-1">{language === "ar" ? "راجع حفظك بذكاء لترسيخه في الذاكرة طويلة الأمد." : "Review your memorization smartly to solidify it in long-term memory."}</p>
         </div>
         <div className="flex items-center gap-3">
           <SpacedRepetitionExplanation />
@@ -290,21 +290,21 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold rounded-xl flex items-center gap-2 shadow-sm transition"
           >
             <Plus className="h-4 w-4" />
-            أضف خطة حفظ
+            {language === "ar" ? "أضف خطة حفظ" : "Add Plan"}
           </button>
         </div>
       </div>
 
       {isAdding && (
         <form onSubmit={handleCreatePlan} className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm animate-in slide-in-from-top-4">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">خطة حفظ جديدة</h3>
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">{language === "ar" ? "خطة حفظ جديدة" : "New Memorization Plan"}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">عنوان الخطة</label>
-              <input required type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="مثال: سورة النبأ كاملة" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "عنوان الخطة" : "Plan Title"}</label>
+              <input required type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={language === "ar" ? "مثال: سورة النبأ كاملة" : "Example: Full Surah An-Naba"} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">السورة</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "السورة" : "Surah"}</label>
               <select value={selectedSurahId} onChange={e => { // Clamps endVerse and startVerse when surah changes
                   const newSurahId = Number(e.target.value);
                   setSelectedSurahId(newSurahId);
@@ -314,11 +314,11 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
               }} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm">
                 {SURAHS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <p className="text-[9px] text-slate-400 mt-1">عدد آيات هذه السورة: {selectedSurahMaxVerse} آية</p>
+              <p className="text-[9px] text-slate-400 mt-1">{language === "ar" ? `عدد آيات هذه السورة: ${selectedSurahMaxVerse} آية` : `Total verses in this surah: ${selectedSurahMaxVerse}`}</p>
             </div>
             <div>
               {/* startVerse input */}
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">من الآية</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "من الآية" : "From Verse"}</label>
               <input type="text" inputMode="numeric" min={1} max={Number(endVerse) > 1 ? Number(endVerse) - 1 : 1} value={startVerse} 
                 onChange={e => {
                   const val = e.target.value;
@@ -337,7 +337,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
             </div>
             {/* endVerse input */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">إلى الآية</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "إلى الآية" : "To Verse"}</label>
               <input type="text" inputMode="numeric" min={Number(startVerse)} max={SURAHS.find(s => s.id === selectedSurahId)?.verses || 1} value={endVerse} 
                 onChange={e => {
                   const val = e.target.value;
@@ -361,7 +361,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-sm">إلغاء</button>
+            <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-sm">{language === "ar" ? "إلغاء" : "Cancel"}</button>
             <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center gap-2">                {isSubmitting ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ وبدء المراجعة" : "Save and start review")}</button>
           </div>
         </form>
@@ -386,7 +386,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
 
           {categories.todayReviews.length > 0 && (
             <div>
-              <h3 className="text-sm font-black text-emerald-600 mb-4 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> مراجعات اليوم</h3>
+              <h3 className="text-sm font-black text-emerald-600 mb-4 flex items-center gap-2"><CheckCircle2 className="h-4 w-4"/> {language === "ar" ? "مراجعات اليوم" : "Today's Reviews"}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.todayReviews.map(renderPlanCard)}
               </div>
@@ -395,7 +395,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
 
           {categories.upcomingReviews.length > 0 && (
             <div>
-              <h3 className="text-sm font-black text-amber-600 mb-4 flex items-center gap-2"><Calendar className="h-4 w-4"/> المراجعات القادمة</h3>
+              <h3 className="text-sm font-black text-amber-600 mb-4 flex items-center gap-2"><Calendar className="h-4 w-4"/> {language === "ar" ? "المراجعات القادمة" : "Upcoming Reviews"}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-80">
                 {categories.upcomingReviews.map(renderPlanCard)}
               </div>
@@ -404,7 +404,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
 
           {categories.masteredReviews.length > 0 && (
             <div>
-              <h3 className="text-sm font-black text-blue-600 mb-4 flex items-center gap-2"><Sparkles className="h-4 w-4"/> مقاطع متقنة (مراجعة دورية)</h3>
+              <h3 className="text-sm font-black text-blue-600 mb-4 flex items-center gap-2"><Sparkles className="h-4 w-4"/> {language === "ar" ? "مقاطع متقنة (مراجعة دورية)" : "Mastered Sections (Periodic Review)"}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
                 {categories.masteredReviews.map(renderPlanCard)}
               </div>

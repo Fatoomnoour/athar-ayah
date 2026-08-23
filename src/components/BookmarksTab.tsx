@@ -166,7 +166,7 @@ export default function BookmarksTab({
       onRefreshStats();
     } catch (err) {
       console.error("Error creating bookmark:", err);
-      setErrorMsg("خطأ في الاتصال بالخادم.");
+      setErrorMsg(language === "ar" ? "خطأ في الاتصال بالخادم." : "Server connection error.");
     } finally {
       setIsSubmitting(false);
     }
@@ -175,7 +175,7 @@ export default function BookmarksTab({
   const handleDeleteBookmark = async (id: string) => {
     if (!currentUser) return;
 
-    if (!confirm("هل أنت متأكد من حذف هذه العلامة المرجعية؟")) return;
+    if (!confirm(language === "ar" ? "هل أنت متأكد من حذف هذه العلامة المرجعية؟" : "Are you sure you want to delete this bookmark?")) return;
 
     try {
       await deleteBookmark(currentUser.id, id);
@@ -189,7 +189,7 @@ export default function BookmarksTab({
   const handleRemoveFavorite = async (noteId: string) => {
     if (!currentUser) return;
 
-    if (!confirm("هل تريد إزالة هذه الخاطرة من المفضلة؟")) return;
+    if (!confirm(language === "ar" ? "هل تريد إزالة هذه الخاطرة من المفضلة؟" : "Are you sure you want to remove this reflection from favorites?")) return;
 
     try {
       await updateNote(currentUser.id, noteId, { isFavorite: false });
@@ -217,7 +217,7 @@ export default function BookmarksTab({
       anyNote.verse?.text ||
       anyNote.ayah?.text ||
       verified?.text ||
-      "نص الآية غير متوفر"
+      (language === "ar" ? "نص الآية غير متوفر" : "Verse text not available")
     );
   };
 
@@ -232,7 +232,7 @@ export default function BookmarksTab({
   return (
     <div className="space-y-6" dir={direction}>
       <div className="bg-gradient-to-l from-teal-850 to-teal-950 dark:from-slate-900 dark:to-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-right">
+        <div className={`flex items-center gap-3 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
           <div className="p-3 bg-teal-100 dark:bg-emerald-950/40 text-teal-700 dark:text-emerald-400 rounded-2xl">
             <BookmarkCheck className="h-6 w-6" />
           </div>
@@ -256,7 +256,7 @@ export default function BookmarksTab({
           }`}
           id="add-bookmark-btn"
         >
-          {isAdding ? "إلغاء الإضافة" : "إضافة فاصل مرجعي جديد"}
+          {isAdding ? (language === "ar" ? "إلغاء الإضافة" : "Cancel") : (language === "ar" ? "إضافة فاصل مرجعي جديد" : "Add New Bookmark")}
         </button>
       </div>
 
@@ -267,7 +267,7 @@ export default function BookmarksTab({
         >
           <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
             <MapPin className="h-4.5 w-4.5 text-emerald-600" />
-            <span>تسجيل علامة مرجعية جديدة</span>
+            <span>{language === "ar" ? "تسجيل علامة مرجعية جديدة" : "Record New Bookmark"}</span>
           </h4>
 
           {errorMsg && (
@@ -279,7 +279,7 @@ export default function BookmarksTab({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">
-                السورة الكريمة
+                {language === "ar" ? "السورة الكريمة" : "Surah"}
               </label>
               <select
                 value={formSurahId}
@@ -292,7 +292,7 @@ export default function BookmarksTab({
               >
                 {SURAHS.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.id}. {s.name} ({s.verses} آية)
+                    {s.id}. {s.name} ({s.verses} {language === "ar" ? "آية" : "verses"})
                   </option>
                 ))}
               </select>
@@ -300,7 +300,7 @@ export default function BookmarksTab({
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">
-                رقم الآية (الأقصى {maxVerse})
+                {language === "ar" ? `رقم الآية (الأقصى ${maxVerse})` : `Verse Number (Max ${maxVerse})`}
               </label>
               <input
                 type="text"
@@ -323,11 +323,11 @@ export default function BookmarksTab({
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">
-                ملاحظة توضيحية (اختياري)
+                {language === "ar" ? "ملاحظة توضيحية (اختياري)" : "Note (Optional)"}
               </label>
               <input
                 type="text"
-                placeholder="مثال: ورد الفجر، سجدة التلاوة..."
+                placeholder={language === "ar" ? "مثال: ورد الفجر، سجدة التلاوة..." : "Example: Fajr wird, prostration..."}
                 value={formNote}
                 onChange={(e) => setFormNote(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -342,7 +342,7 @@ export default function BookmarksTab({
               onClick={() => setIsAdding(false)}
               className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition"
             >
-              إلغاء
+              {language === "ar" ? "إلغاء" : "Cancel"}
             </button>
 
             <button
@@ -402,7 +402,7 @@ export default function BookmarksTab({
                           </p>
                         ) : (
                           <p className="text-[10px] text-slate-400 mt-0.5 italic">
-                            لا توجد ملاحظة توضيحية.
+                            {language === "ar" ? "لا توجد ملاحظة توضيحية." : "No note attached."}
                           </p>
                         )}
                       </div>
@@ -413,7 +413,7 @@ export default function BookmarksTab({
                           handleDeleteBookmark(bookmark.id);
                         }}
                         className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition opacity-0 group-hover:opacity-100"
-                        title="حذف العلامة"
+                        title={language === "ar" ? "حذف العلامة" : "Delete Bookmark"}
                         id={`delete-bookmark-${bookmark.id}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -436,10 +436,10 @@ export default function BookmarksTab({
             <div className="py-20 text-center text-slate-400 text-sm flex-1 flex flex-col items-center justify-center">
               <Star className="h-10 w-10 text-slate-300 dark:text-slate-700 mb-2" />
               <p className="font-medium text-slate-600 dark:text-slate-400 text-sm">
-                لا توجد خواطر مفضلة بعد
+                {language === "ar" ? "لا توجد خواطر مفضلة بعد" : "No favorite reflections yet"}
               </p>
               <p className="text-slate-400 text-xs mt-1">
-                اضغط على نجمة المفضلة في أي خاطرة بالصفحة الرئيسية لتظهر هنا.
+                {language === "ar" ? "اضغط على نجمة المفضلة في أي خاطرة بالصفحة الرئيسية لتظهر هنا." : "Click the favorite star on any reflection in the home page to see it here."}
               </p>
             </div>
           ) : (
@@ -453,7 +453,7 @@ export default function BookmarksTab({
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="px-2.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 rounded-full text-xs font-semibold">
-                        {note.surahName} • آية {note.verseNumber}
+                        {note.surahName} • {language === "ar" ? "آية" : "Verse"} {note.verseNumber}
                       </span>
 
                       <button
@@ -462,7 +462,7 @@ export default function BookmarksTab({
                           handleRemoveFavorite(note.id);
                         }}
                         className="text-amber-500 hover:text-slate-400 transition"
-                        title="إزالة من المفضلة"
+                        title={language === "ar" ? "إزالة من المفضلة" : "Remove from favorites"}
                         id={`remove-fav-${note.id}`}
                       >
                         <Star className="h-4 w-4 fill-amber-500" />

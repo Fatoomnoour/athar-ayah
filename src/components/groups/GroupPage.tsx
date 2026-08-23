@@ -24,6 +24,7 @@ import {
 } from "../../services/firestoreService";
 import { formatFirestoreDate } from "../../utils/dateUtils";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../../utils/quranUtils";
+import { useLanguage } from "../../i18n";
 
 interface GroupPageProps {
   group: QuranGroup;
@@ -94,6 +95,7 @@ export default function GroupPage({
   onBack,
   onShowToast,
 }: GroupPageProps) {
+  const { language, direction } = useLanguage();
   const [localGroup, setLocalGroup] = useState<QuranGroup>(group);
   const [reflections, setReflections] = useState<ReflectionWithExtras[]>([]);
   const [newReflection, setNewReflection] = useState("");
@@ -200,7 +202,7 @@ export default function GroupPage({
       onShowToast("تم إزالة العضو بنجاح", "success");
     } catch (err) {
       console.error(err);
-      onShowToast("حدث خطأ أثناء إزالة العضو", "error");
+      onShowToast(language === "ar" ? "حدث خطأ أثناء إزالة العضو" : "Error removing member", "error");
     }
   };
 
@@ -244,7 +246,7 @@ export default function GroupPage({
       );
     } catch (err) {
       console.error("Error loading group reflections:", err);
-      onShowToast("تعذر تحميل تدبرات الحلقة", "error");
+      onShowToast(language === "ar" ? "تعذر تحميل تدبرات الحلقة" : "Failed to load reflections", "error");
       setReflections([]);
     } finally {
       setIsLoading(false);
@@ -341,7 +343,7 @@ export default function GroupPage({
     e.preventDefault();
 
     if (!currentUser) {
-      onShowToast("يجب تسجيل الدخول أولًا", "error");
+      onShowToast(language === "ar" ? "يجب تسجيل الدخول أولًا" : "You must sign in first", "error");
       return;
     }
 
@@ -406,7 +408,7 @@ export default function GroupPage({
 
   const handleToggleReaction = async (reflectionId: string) => {
     if (!currentUser) {
-      onShowToast("يجب تسجيل الدخول أولًا", "error");
+      onShowToast(language === "ar" ? "يجب تسجيل الدخول أولًا" : "You must sign in first", "error");
       return;
     }
 
@@ -436,19 +438,19 @@ export default function GroupPage({
       );
     } catch (err) {
       console.error("Error toggling reaction:", err);
-      onShowToast("تعذر تنفيذ أثّر فيّ. تحقق من الصلاحيات.", "error");
+      onShowToast(language === "ar" ? "تعذر تنفيذ أثّر فيّ. تحقق من الصلاحيات." : "Could not toggle reaction. Check permissions.", "error");
       await fetchReflections();
     }
   };
 
   const handleTogglePin = async (reflection: ReflectionWithExtras) => {
     if (!currentUser) {
-      onShowToast("يجب تسجيل الدخول أولًا", "error");
+      onShowToast(language === "ar" ? "يجب تسجيل الدخول أولًا" : "You must sign in first", "error");
       return;
     }
 
     if (!isAdmin) {
-      onShowToast("التثبيت متاح للمشرف فقط", "info");
+      onShowToast(language === "ar" ? "التثبيت متاح للمشرف فقط" : "Pinning is for admins only", "info");
       return;
     }
 
@@ -460,18 +462,18 @@ export default function GroupPage({
       await fetchReflections();
 
       onShowToast(
-        reflection.isPinned ? "تم إلغاء تثبيت التدبر" : "تم تثبيت التدبر",
+        reflection.isPinned ? (language === "ar" ? "تم إلغاء تثبيت التدبر" : "Reflection unpinned") : (language === "ar" ? "تم تثبيت التدبر" : "Reflection pinned"),
         "success"
       );
     } catch (err) {
       console.error("Error toggling pin:", err);
-      onShowToast("تعذر تنفيذ التثبيت. تحقق من الصلاحيات.", "error");
+      onShowToast(language === "ar" ? "تعذر تنفيذ التثبيت. تحقق من الصلاحيات." : "Could not toggle pin. Check permissions.", "error");
     }
   };
 
   const handleAddComment = async (reflection: ReflectionWithExtras) => {
     if (!currentUser) {
-      onShowToast("يجب تسجيل الدخول أولًا", "error");
+      onShowToast(language === "ar" ? "يجب تسجيل الدخول أولًا" : "You must sign in first", "error");
       return;
     }
 
@@ -510,10 +512,10 @@ export default function GroupPage({
       }));
 
       await fetchReflections();
-      onShowToast("تمت إضافة النقاش", "success");
+      onShowToast(language === "ar" ? "تمت إضافة النقاش" : "Comment added", "success");
     } catch (err) {
       console.error("Error adding comment:", err);
-      onShowToast("تعذر إضافة النقاش. تحقق من الصلاحيات.", "error");
+      onShowToast(language === "ar" ? "تعذر إضافة النقاش. تحقق من الصلاحيات." : "Could not add comment. Check permissions.", "error");
     } finally {
       setCommentLoading((prev) => ({
         ...prev,
@@ -524,12 +526,12 @@ export default function GroupPage({
 
   const handleUpdateWeeklyWird = async () => {
     if (!currentUser) {
-      onShowToast("يجب تسجيل الدخول أولًا", "error");
+      onShowToast(language === "ar" ? "يجب تسجيل الدخول أولًا" : "You must sign in first", "error");
       return;
     }
 
     if (!isAdmin) {
-      onShowToast("تحديث الورد متاح للمشرف فقط", "info");
+      onShowToast(language === "ar" ? "تحديث الورد متاح للمشرف فقط" : "Updating Wird is for admins only", "info");
       return;
     }
 
@@ -558,23 +560,23 @@ export default function GroupPage({
       }));
 
       setIsUpdatingWird(false);
-      onShowToast("تم تحديث الورد الأسبوعي", "success");
+      onShowToast(language === "ar" ? "تم تحديث الورد الأسبوعي" : "Weekly Wird updated", "success");
     } catch (err) {
       console.error("Error updating weekly wird:", err);
-      onShowToast("تعذر تحديث الورد. تحقق من الصلاحيات.", "error");
+      onShowToast(language === "ar" ? "تعذر تحديث الورد. تحقق من الصلاحيات." : "Could not update Wird. Check permissions.", "error");
     } finally {
       setIsSavingWird(false);
     }
   };
 
   return (
-    <div className="space-y-6 font-sans animate-in fade-in" dir="rtl">
+    <div className={`space-y-6 font-sans animate-in fade-in ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={direction}>
       <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
         <button
           onClick={onBack}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
         >
-          <ArrowLeft className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+          <ArrowLeft className={`h-5 w-5 text-slate-600 dark:text-slate-300 ${language === 'en' ? 'rotate-180' : ''}`} />
         </button>
 
         <div className="flex items-center gap-3">
@@ -585,7 +587,7 @@ export default function GroupPage({
               {(localGroup as any).name}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {(localGroup as any).description || "حلقة تدبر قرآني"}
+              {(localGroup as any).description || (language === "ar" ? "حلقة تدبر قرآني" : "Quran Reflection Circle")}
             </p>
           </div>
         </div>
@@ -596,7 +598,7 @@ export default function GroupPage({
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
             <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-600" />
-              شاركنا تدبرك
+              {language === "ar" ? "شاركنا تدبرك" : "Share Your Reflection"}
             </h3>
 
             <form onSubmit={handleSubmitReflection}>
@@ -604,7 +606,7 @@ export default function GroupPage({
                 required={!audioBlob}
                 value={newReflection}
                 onChange={(e) => setNewReflection(e.target.value)}
-                placeholder="ماذا تعلمت من الآيات؟ ما المعنى الذي أثّر فيك؟ (أو سجل تدبرك صوتياً)"
+                placeholder={language === "ar" ? "ماذا تعلمت من الآيات؟ ما المعنى الذي أثّر فيك؟ (أو سجل تدبرك صوتياً)" : "What did you learn from the verses? What meaning affected you? (Or record it)"}
                 className="w-full h-24 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl resize-none font-medium text-sm focus:border-emerald-500 outline-none transition"
               />
 
@@ -615,7 +617,7 @@ export default function GroupPage({
                     type="button"
                     onClick={clearAudio}
                     className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
-                    title="حذف التسجيل"
+                    title={language === "ar" ? "حذف التسجيل" : "Delete recording"}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -635,7 +637,7 @@ export default function GroupPage({
                       }`}
                     >
                       {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                      {isRecording ? "إيقاف التسجيل..." : "تسجيل صوتي"}
+                      {isRecording ? (language === "ar" ? "إيقاف التسجيل..." : "Stop recording...") : (language === "ar" ? "تسجيل صوتي" : "Voice Record")}
                     </button>
                   )}
                 </div>
@@ -646,7 +648,7 @@ export default function GroupPage({
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-4 w-4" />
-                  {isSubmitting ? "جاري النشر..." : "نشر التدبر"}
+                  {isSubmitting ? (language === "ar" ? "جاري النشر..." : "Publishing...") : (language === "ar" ? "نشر التدبر" : "Publish")}
                 </button>
               </div>
             </form>
@@ -654,16 +656,16 @@ export default function GroupPage({
 
           <div className="space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">
-              تدبرات الأعضاء
+              {language === "ar" ? "تدبرات الأعضاء" : "Members Reflections"}
             </h3>
 
             {isLoading ? (
               <div className="text-center py-10 text-slate-500 font-bold">
-                جاري التحميل...
+                {language === "ar" ? "جاري التحميل..." : "Loading..."}
               </div>
             ) : sortedReflections.length === 0 ? (
               <div className="bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
-                لا توجد تدبرات بعد في هذا الورد، كن أول من يشارك!
+                {language === "ar" ? "لا توجد تدبرات بعد في هذا الورد، كن أول من يشارك!" : "No reflections in this Wird yet. Be the first to share!"}
               </div>
             ) : (
               sortedReflections.map((ref) => {
@@ -686,7 +688,7 @@ export default function GroupPage({
                     {ref.isPinned && (
                       <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-bold">
                         <Star className="h-3 w-3 fill-current" />
-                        تدبر مثبت
+                        {language === "ar" ? "تدبر مثبت" : "Pinned"}
                       </div>
                     )}
 
@@ -698,10 +700,10 @@ export default function GroupPage({
 
                         <div>
                           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
-                            {ref.userName || "عضو"}
+                            {ref.userName || (language === "ar" ? "عضو" : "Member")}
                           </span>
                           <span className="text-[10px] text-slate-400 block">
-                            تدبر شخصي لعضو
+                            {language === "ar" ? "تدبر شخصي لعضو" : "Member reflection"}
                           </span>
                         </div>
                       </div>
@@ -714,7 +716,7 @@ export default function GroupPage({
                           <button
                             onClick={() => handleDeleteReflection(ref.id, ref.audioUrl)}
                             className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-1 rounded transition"
-                            title="حذف التدبر"
+                            title={language === "ar" ? "حذف التدبر" : "Delete reflection"}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -724,7 +726,7 @@ export default function GroupPage({
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mb-1">
-                        ورد: سورة {ref.surahName || currentSurah.name} آية{" "}
+                        {language === "ar" ? "ورد: سورة" : "Wird: Surah"} {ref.surahName || currentSurah.name} {language === "ar" ? "آية" : "Verse"}{" "}
                         {ref.verseRange || currentVerseRange}
                       </span>
 
@@ -741,7 +743,7 @@ export default function GroupPage({
                       )}
                       
                       {!ref.reflectionText && !ref.audioUrl && (
-                        <p className="text-sm text-slate-400 italic">لا يوجد محتوى للتدبر</p>
+                        <p className="text-sm text-slate-400 italic">{language === "ar" ? "لا يوجد محتوى للتدبر" : "No reflection content"}</p>
                       )}
                     </div>
 
@@ -760,7 +762,7 @@ export default function GroupPage({
                             isReactedByMe ? "fill-current" : ""
                           }`}
                         />
-                        أثّر فيّ ({reactionUserIds.length})
+                        {language === "ar" ? "أثّر فيّ" : "Impacted me"} ({reactionUserIds.length})
                       </button>
 
                       <button
@@ -777,7 +779,7 @@ export default function GroupPage({
                         }`}
                       >
                         <MessageCircle className="h-4 w-4" />
-                        نقاش {comments.length > 0 ? `(${comments.length})` : ""}
+                        {language === "ar" ? "نقاش" : "Discuss"} {comments.length > 0 ? `(${comments.length})` : ""}
                       </button>
 
                       <button
@@ -794,7 +796,7 @@ export default function GroupPage({
                             ref.isPinned ? "fill-current" : ""
                           }`}
                         />
-                        {ref.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                        {ref.isPinned ? (language === "ar" ? "إلغاء التثبيت" : "Unpin") : (language === "ar" ? "تثبيت" : "Pin")}
                       </button>
                     </div>
 
@@ -803,7 +805,7 @@ export default function GroupPage({
                         <div className="space-y-2">
                           {comments.length === 0 ? (
                             <p className="text-xs text-slate-400 text-center py-2">
-                              لا توجد مناقشات بعد. كن أول من يعلّق.
+                              {language === "ar" ? "لا توجد مناقشات بعد. كن أول من يعلّق." : "No discussions yet. Be the first to comment."}
                             </p>
                           ) : (
                             comments.map((comment) => (
@@ -813,7 +815,7 @@ export default function GroupPage({
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                                    {comment.userName || "عضو"}
+                                    {comment.userName || (language === "ar" ? "عضو" : "Member")}
                                   </span>
 
                                   <div className="flex items-center gap-2">
@@ -824,7 +826,7 @@ export default function GroupPage({
                                       <button
                                         onClick={() => handleDeleteComment(ref.id, comment.id)}
                                         className="text-red-400 hover:text-red-600 transition"
-                                        title="حذف التعليق"
+                                        title={language === "ar" ? "حذف التعليق" : "Delete comment"}
                                       >
                                         <Trash2 className="h-3 w-3" />
                                       </button>
@@ -850,7 +852,7 @@ export default function GroupPage({
                                 [ref.id]: e.target.value,
                               }))
                             }
-                            placeholder="اكتب نقاشك حول هذا التدبر..."
+                            placeholder={language === "ar" ? "اكتب نقاشك حول هذا التدبر..." : "Write your discussion about this reflection..."}
                             className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
 
@@ -861,7 +863,7 @@ export default function GroupPage({
                             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition flex items-center gap-1"
                           >
                             <Send className="h-3.5 w-3.5" />
-                            {commentLoading[ref.id] ? "جاري..." : "إرسال"}
+                            {commentLoading[ref.id] ? (language === "ar" ? "جاري..." : "Sending...") : (language === "ar" ? "إرسال" : "Send")}
                           </button>
                         </div>
                       </div>
@@ -877,18 +879,18 @@ export default function GroupPage({
           <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-5">
             <h3 className="font-bold text-emerald-800 dark:text-emerald-400 mb-3 flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              الورد الحالي
+              {language === "ar" ? "الورد الحالي" : "Current Wird"}
             </h3>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm text-center">
-              <p className="text-sm text-slate-500 mb-1">سورة</p>
+              <p className="text-sm text-slate-500 mb-1">{language === "ar" ? "سورة" : "Surah"}</p>
 
               <p className="text-lg font-black text-slate-800 dark:text-slate-100 mb-2">
                 {currentSurah.name}
               </p>
 
               <div className="inline-block px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold">
-                الآيات: {currentVerseRange}
+                {language === "ar" ? "الآيات:" : "Verses:"} {currentVerseRange}
               </div>
             </div>
 
@@ -900,12 +902,12 @@ export default function GroupPage({
                     onClick={() => setIsUpdatingWird(true)}
                     className="w-full py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition"
                   >
-                    تحديث الورد الأسبوعي
+                    {language === "ar" ? "تحديث الورد الأسبوعي" : "Update Weekly Wird"}
                   </button>
                 ) : (
                   <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/40 rounded-xl p-3 space-y-3">
                     <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">
-                      اختر السورة
+                      {language === "ar" ? "اختر السورة" : "Select Surah"}
                     </label>
 
                     <select
@@ -943,7 +945,7 @@ export default function GroupPage({
                           setWeeklyStartVerse(val);
                         }}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 text-center"
-                        placeholder="من آية"
+                        placeholder={language === "ar" ? "من آية" : "From verse"}
                       />
                       <span className="text-slate-400 font-bold">-</span>
                       <input
@@ -963,7 +965,7 @@ export default function GroupPage({
                           setWeeklyEndVerse(val);
                         }}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 text-center"
-                        placeholder="إلى آية"
+                        placeholder={language === "ar" ? "إلى آية" : "To verse"}
                       />
                     </div>
 
@@ -974,7 +976,7 @@ export default function GroupPage({
                         disabled={isSavingWird}
                         className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition"
                       >
-                        {isSavingWird ? "جاري الحفظ..." : "حفظ الورد"}
+                        {isSavingWird ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ الورد" : "Save Wird")}
                       </button>
 
                       <button
@@ -983,7 +985,7 @@ export default function GroupPage({
                         disabled={isSavingWird}
                         className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition disabled:opacity-50"
                       >
-                        إلغاء
+                        {language === "ar" ? "إلغاء" : "Cancel"}
                       </button>
                     </div>
                   </div>
@@ -996,18 +998,18 @@ export default function GroupPage({
             <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-slate-400" />
-                أعضاء الحلقة
+                {language === "ar" ? "أعضاء الحلقة" : "Circle Members"}
               </span>
 
               <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-slate-500">
-                {membersCount} من {maxMembers}
+                {membersCount} {language === "ar" ? "من" : "of"} {maxMembers}
               </span>
             </h3>
 
             <div className="space-y-3 mb-4">
               {displayedMembers.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-3">
-                  لا توجد بيانات أعضاء متاحة الآن.
+                  {language === "ar" ? "لا توجد بيانات أعضاء متاحة الآن." : "No member data available now."}
                 </p>
               ) : (
                 displayedMembers.map((member) => (
@@ -1021,7 +1023,7 @@ export default function GroupPage({
                       </div>
 
                       <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-                        {member.name || "عضو"}
+                        {member.name || (language === "ar" ? "عضو" : "Member")}
                       </span>
                     </div>
 
@@ -1030,18 +1032,18 @@ export default function GroupPage({
                         <button
                           onClick={() => handleRemoveMember(member.userId)}
                           className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-0.5 rounded transition-opacity"
-                          title="إزالة العضو"
+                          title={language === "ar" ? "إزالة العضو" : "Remove member"}
                         >
-                          إزالة
+                          {language === "ar" ? "إزالة" : "Remove"}
                         </button>
                       )}
                       {member.role === "admin" ? (
                         <span className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold">
-                          مشرف
+                          {language === "ar" ? "مشرف" : "Admin"}
                         </span>
                       ) : (
                         <span className="text-[9px] bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">
-                          عضو
+                          {language === "ar" ? "عضو" : "Member"}
                         </span>
                       )}
                     </div>

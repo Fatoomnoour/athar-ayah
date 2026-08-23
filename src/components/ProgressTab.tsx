@@ -7,6 +7,7 @@ import { ReadingProgress, User } from "../types";
 import { getReadingProgress, saveReadingProgress } from "../services/firestoreService";
 import { formatFirestoreDate } from "../utils/dateUtils";
 import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
+import { useLanguage } from "../i18n";
 
 interface ProgressTabProps {
   currentUser: User | null;
@@ -15,6 +16,7 @@ interface ProgressTabProps {
 }
 
 export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToReader }: ProgressTabProps) {
+  const { language, t } = useLanguage();
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -133,7 +135,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
   return (
     <div className="space-y-6">
       <button onClick={() => onNavigateToReader(progress?.lastSurahId, progress?.lastVerseNumber)} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-right flex items-center justify-between group">
-        <span className="font-bold text-emerald-700 dark:text-emerald-400">تابع القراءة من آخر موضع: {progress?.lastSurahName} آية {progress?.lastVerseNumber}</span>
+        <span className="font-bold text-emerald-700 dark:text-emerald-400">{t("continueFromLast")} {progress?.lastSurahName} {language === "ar" ? "آية" : "Verse"} {progress?.lastVerseNumber}</span>
         <ChevronLeft className="h-5 w-5 text-emerald-500 group-hover:translate-x-[-4px] transition-transform" />
       </button>
 
@@ -141,19 +143,19 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Current status card */}
         <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white rounded-2xl p-5 shadow-md flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute left-[-20px] top-[-20px] opacity-10 font-serif text-8xl select-none">القرآن</div>
+          <div className="absolute left-[-20px] top-[-20px] opacity-10 font-serif text-8xl select-none">{t("quranWord")}</div>
           <div>
-            <span className="text-emerald-100 text-xs font-semibold px-2 py-0.5 bg-emerald-700/50 rounded-full inline-block mb-2">آخر موضع قراءة</span>
+            <span className="text-emerald-100 text-xs font-semibold px-2 py-0.5 bg-emerald-700/50 rounded-full inline-block mb-2">{t("lastReadPosition")}</span>
             <h3 className="text-2xl font-bold leading-tight">
-              {progress ? `${progress.lastSurahName} • آية ${progress.lastVerseNumber}` : "الفاتحة • آية 1"}
+              {progress ? `${progress.lastSurahName} • ${language === "ar" ? "آية" : "Verse"} ${progress.lastVerseNumber}` : (language === "ar" ? "الفاتحة • آية 1" : "Al-Fatihah • Verse 1")}
             </h3>
             <p className="text-emerald-100 text-xs mt-1.5 flex items-center gap-1">
-              <Compass className="h-3 w-3" /> ثبتت قراءتك ونوّر يومك بالقرآن.
+              <Compass className="h-3 w-3" /> {t("updateProgressMsg")}
             </p>
           </div>
           
           <div className="mt-6 pt-3 border-t border-emerald-500/30 flex items-center justify-between text-xs text-emerald-100">
-            <span>تحديث: {progress?.updatedAt ? formatFirestoreDate(progress.updatedAt) : "غير محدد"}</span>
+            <span>{t("lastUpdate")} {progress?.updatedAt ? formatFirestoreDate(progress.updatedAt) : t("notSpecified")}</span>
             <BookMarked className="h-4.5 w-4.5 text-emerald-200" />
           </div>
         </div>
@@ -162,9 +164,9 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-slate-400 text-xs font-semibold block">هدفك اليومي</span>
+              <span className="text-slate-400 text-xs font-semibold block">{t("dailyGoal")}</span>
               <h4 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
-                {progress?.dailyGoalVerses || 10} <span className="text-sm font-normal text-slate-500">آية / يومياً</span>
+                {progress?.dailyGoalVerses || 10} <span className="text-sm font-normal text-slate-500">{t("dailyGoalUnit")}</span>
               </h4>
             </div>
             <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-teal-600 rounded-xl">
@@ -174,8 +176,8 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-xs text-slate-500">
-              <span>تقدير الختم بالورد الحالي</span>
-              <span className="font-semibold text-teal-600">~ {estimatedDaysToComplete} يوم</span>
+              <span>{t("estimatedDays")}</span>
+              <span className="font-semibold text-teal-600">~ {estimatedDaysToComplete} {t("daysUnit")}</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div 
@@ -190,9 +192,9 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-slate-400 text-xs font-semibold block">السور المكتملة</span>
+              <span className="text-slate-400 text-xs font-semibold block">{t("completedSurahsCount")}</span>
               <h4 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
-                {completedSurahsCount} <span className="text-sm font-normal text-slate-500">سورة من ١١٤</span>
+                {completedSurahsCount} <span className="text-sm font-normal text-slate-500">{t("outOf114")}</span>
               </h4>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-500 rounded-xl">
@@ -202,7 +204,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-xs text-slate-500">
-              <span>إجمالي نسبة ختم السور</span>
+              <span>{t("totalSurahProgress")}</span>
               <span className="font-semibold text-amber-600">{surahProgressPercentage}%</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -220,7 +222,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm h-fit">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2 text-md">
             <BookOpen className="h-5 w-5 text-emerald-600" />
-            <span>تسجيل الموضع الحالي للقراءة</span>
+            <span>{t("updateProgressTitle")}</span>
           </h3>
 
           {msg && (
@@ -232,7 +234,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
           <form onSubmit={handleUpdateProgress} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">السورة الحالية</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t("currentSurahLabel")}</label>
               <select
                 value={selectedSurahId}
                 onChange={(e) => setSelectedSurahId(parseInt(e.target.value))}
@@ -249,7 +251,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1" >
-                وصلت للآية رقم (الحد الأقصى {activeSurahMeta?.verses || 286})
+                {t("reachedVerseLabel")} ({activeSurahMeta?.verses || 286})
               </label>
               <input
                 type="number"
@@ -264,8 +266,8 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
             <div>
               <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                <span>الورد اليومي المستهدف</span>
-                <span className="text-emerald-600">{dailyGoal} آية / يومياً</span>
+                <span>{t("dailyGoalTarget")}</span>
+                <span className="text-emerald-600">{dailyGoal} {t("dailyGoalUnit")}</span>
               </div>
               <input
                 type="range"
@@ -288,7 +290,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
               {isUpdating ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
-                <span>حفظ التقدم ومتابعة الورد</span>
+                <span>{t("saveProgress")}</span>
               )}
             </button>
           </form>
@@ -299,10 +301,10 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
           <div className="mb-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
             <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-md">
               <Award className="h-5 w-5 text-amber-500" />
-              <span>قائمة ختم السور الكريمة</span>
+              <span>{t("completedSurahsList")}</span>
             </h3>
             <span className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-950 px-2 py-1 rounded-md">
-              اضغط على السورة لتسجيل ختمتها
+              {t("clickToComplete")}
             </span>
           </div>
 
@@ -322,7 +324,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
                 >
                   <div className="space-y-0.5">
                     <span className="block text-[11px] text-slate-400 font-semibold">
-                      {s.id}. {s.type === "Meccan" ? "مكية" : "مدنية"}
+                      {s.id}. {s.type}
                     </span>
                     <span className="font-bold text-sm block group-hover:translate-x-[-2px] transition-transform">
                       {s.name}

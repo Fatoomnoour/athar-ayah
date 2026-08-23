@@ -5,6 +5,7 @@ import GroupPage from "./GroupPage";
 import { getUserGroups, createGroup, joinGroup, archiveGroup, leaveGroup } from "../../services/firestoreService";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../../utils/quranUtils";
 import SurahSearchSelect from "./SurahSearchSelect";
+import { useLanguage } from "../../i18n";
 
 interface GroupsTabProps {
   currentUser: User | null;
@@ -12,6 +13,7 @@ interface GroupsTabProps {
 }
 
 export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) {
+  const { language, direction, t } = useLanguage();
   const [groups, setGroups] = useState<QuranGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -222,14 +224,14 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
   }
 
   return (
-    <div className="space-y-6 font-sans" dir="rtl">
+    <div className={`space-y-6 font-sans ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={direction}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Users className="h-5 w-5 text-emerald-600" />
-            حلقات التدبر
+            {t("groupsTitle")}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">تدارس القرآن وتدبر آياته مع صحبة صالحة.</p>
+          <p className="text-sm text-slate-500 mt-1">{language === "ar" ? "تدارس القرآن وتدبر آياته مع صحبة صالحة." : "Study and reflect on the Quran with righteous company."}</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -237,36 +239,36 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
             className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl flex items-center gap-2 transition"
           >
             <Key className="h-4 w-4" />
-            انضمام لحلقة
+            {language === "ar" ? "انضمام لحلقة" : "Join Circle"}
           </button>
           <button 
             onClick={() => { setIsCreating(true); setIsJoining(false); }}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-sm transition"
           >
             <Plus className="h-4 w-4" />
-            تأسيس حلقة
+            {language === "ar" ? "تأسيس حلقة" : "Create Circle"}
           </button>
         </div>
       </div>
 
       {isCreating && (
         <form onSubmit={handleCreateGroup} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm animate-in slide-in-from-top-4">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">تأسيس حلقة تدبر جديدة</h3>
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">{language === "ar" ? "تأسيس حلقة تدبر جديدة" : "Create New Reflection Circle"}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">اسم الحلقة</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "اسم الحلقة" : "Circle Name"}</label>
               <input required type="text" value={newGroupData.name} onChange={e => setNewGroupData({...newGroupData, name: e.target.value})} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">أيقونة الحلقة (إيموجي)</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "أيقونة الحلقة (إيموجي)" : "Circle Icon (Emoji)"}</label>
               <input required type="text" value={newGroupData.icon} onChange={e => setNewGroupData({...newGroupData, icon: e.target.value})} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">وصف الحلقة وأهدافها</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "وصف الحلقة وأهدافها" : "Description and Goals"}</label>
               <input type="text" value={newGroupData.description} onChange={e => setNewGroupData({...newGroupData, description: e.target.value})} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">الورد الحالي (السورة)</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "الورد الحالي (السورة)" : "Current Wird (Surah)"}</label>
               <SurahSearchSelect
                 value={newGroupData.surahId}
                 onChange={(surahId, surahName) => {
@@ -281,7 +283,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">نطاق الآيات</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "نطاق الآيات" : "Verse Range"}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -304,7 +306,7 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                     setNewGroupData({...newGroupData, verseRange: `${val} - ${currentEnd}`});
                   }}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-center"
-                  placeholder="من"
+                  placeholder={language === "ar" ? "من" : "From"}
                 />
                 <span className="text-slate-400 font-bold">-</span>
                 <input
@@ -328,39 +330,39 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                     setNewGroupData({...newGroupData, verseRange: `${currentStart} - ${val}`});
                   }}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm text-center"
-                  placeholder="إلى"
+                  placeholder={language === "ar" ? "إلى" : "To"}
                 />
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-2 text-slate-500 font-bold text-sm">إلغاء</button>
-            <button type="submit" className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm">تأسيس وبدء</button>
+            <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-2 text-slate-500 font-bold text-sm">{language === "ar" ? "إلغاء" : "Cancel"}</button>
+            <button type="submit" className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm">{language === "ar" ? "تأسيس وبدء" : "Create & Start"}</button>
           </div>
         </form>
       )}
 
       {isJoining && (
         <form onSubmit={handleJoinGroup} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm animate-in slide-in-from-top-4">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">الانضمام لحلقة</h3>
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">{language === "ar" ? "الانضمام لحلقة" : "Join a Circle"}</h3>
           <div className="mb-4">
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">رمز الدعوة السري</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{language === "ar" ? "رمز الدعوة السري" : "Secret Invite Code"}</label>
             <input required type="text" value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-sm uppercase text-center tracking-widest" />
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setIsJoining(false)} className="px-4 py-2 text-slate-500 font-bold text-sm">إلغاء</button>
-            <button type="submit" className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm">تأكيد الانضمام</button>
+            <button type="button" onClick={() => setIsJoining(false)} className="px-4 py-2 text-slate-500 font-bold text-sm">{language === "ar" ? "إلغاء" : "Cancel"}</button>
+            <button type="submit" className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm">{language === "ar" ? "تأكيد الانضمام" : "Confirm Join"}</button>
           </div>
         </form>
       )}
 
       {isLoading ? (
-        <div className="text-center py-10 text-slate-500 font-bold">جاري تحميل الحلقات...</div>
+        <div className="text-center py-10 text-slate-500 font-bold">{language === "ar" ? "جاري تحميل الحلقات..." : "Loading circles..."}</div>
       ) : groups.length === 0 ? (
         <div className="bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center">
           <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-bold text-slate-600 dark:text-slate-300 mb-1">لا توجد حلقات مشتركة</h3>
-          <p className="text-sm text-slate-400">ابدأ بإنشاء حلقة جديدة أو انضم عبر رمز الدعوة.</p>
+          <h3 className="font-bold text-slate-600 dark:text-slate-300 mb-1">{language === "ar" ? "لا توجد حلقات مشتركة" : "No shared circles yet"}</h3>
+          <p className="text-sm text-slate-400">{language === "ar" ? "ابدأ بإنشاء حلقة جديدة أو انضم عبر رمز الدعوة." : "Start by creating a new circle or join via an invite code."}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -385,13 +387,13 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">{group.description}</p>
                   <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5">
                     <CalendarDays className="h-3.5 w-3.5" />
-                    أُنشئت في: {formatGroupDate(group.createdAt)}
+                    {language === "ar" ? "أُنشئت في:" : "Created on:"} {formatGroupDate(group.createdAt)}
                   </p>
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 space-y-3">
                   <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 group-hover:text-emerald-500 transition">
                     <BookOpen className="h-4 w-4" /> 
-                    سورة {group.surahName} (الآيات: {group.verseRange.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).split('-').map(v => {
+                    {language === "ar" ? "سورة" : "Surah"} {group.surahName} ({language === "ar" ? "الآيات:" : "Verses:"} {group.verseRange.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).split('-').map(v => {
                       const num = parseInt(v.trim());
                       const surah = SURAH_LIST.find(s => s.name === group.surahName || s.id === (group as any).surahId);
                       const max = surah ? surah.verses : 286;
@@ -404,20 +406,20 @@ export default function GroupsTab({ currentUser, onShowToast }: GroupsTabProps) 
                         type="button"
                         onClick={(event) => handleArchiveGroup(group, event)}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-600 hover:bg-rose-100 transition"
-                        title="حذف الحلقة"
+                        title={language === "ar" ? "حذف الحلقة" : "Delete Circle"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        حذف الحلقة
+                        {language === "ar" ? "حذف الحلقة" : "Delete"}
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={(event) => handleLeaveGroup(group, event)}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition"
-                        title="مغادرة الحلقة"
+                        title={language === "ar" ? "مغادرة الحلقة" : "Leave Circle"}
                       >
                         <LogOut className="h-3.5 w-3.5" />
-                        مغادرة الحلقة
+                        {language === "ar" ? "مغادرة الحلقة" : "Leave"}
                       </button>
                     )}
                   </div>

@@ -58,6 +58,10 @@ function AppContent() {
   useFCM();
   const { t, language, setLanguage } = useLanguage();
 
+  useEffect(() => {
+    document.title = t("pageTitle");
+  }, [t]);
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [activeTab, setActiveTab] = useState<AppTab>("reader");

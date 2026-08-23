@@ -145,8 +145,13 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      setErrorMsg(language === "ar" ? "يجب تسجيل الدخول أولاً" : "You must sign in first");
+      return;
+    }
+
     if (!formReflection.trim()) {
-      setErrorMsg("يرجى كتابة تفكرك أو تدبرك حول الآية الكريمة.");
+      setErrorMsg(language === "ar" ? "يرجى كتابة تفكرك أو تدبرك حول الآية الكريمة." : "Please write your reflection or thought about the verse.");
       return;
     }
 
@@ -161,7 +166,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
     const surahName = selectedSurahMeta?.name || "البقرة";
 
     const payload = {
-      userId: currentUser?.id || "kidscodinghub1512@gmail.com",
+      userId: currentUser.id,
       verseText: getAutofilledVerseText(),
       surahId: formSurahId,
       surahName,
@@ -183,7 +188,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
       fetchNotes();
       onRefreshStats();
     } catch (err) {
-      setErrorMsg("خطأ في الاتصال بالخادم.");
+      setErrorMsg(language === "ar" ? "خطأ في الاتصال بالخادم." : "Server connection error.");
     } finally {
       setIsSubmitting(false);
     }
@@ -238,7 +243,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
     if (verified) return verified.text;
     const cacheKey = `${note.surahId}:${note.verseNumber}`;
     if (fetchedVerseTexts.has(cacheKey)) return fetchedVerseTexts.get(cacheKey)!;
-    return "نص الآية غير متوفر";
+    return language === "ar" ? "نص الآية غير متوفر" : "Verse text not available";
   };
 
   const getTadabburNoteTime = (value: any): number => {
@@ -346,14 +351,14 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
         {allTags.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap text-xs pt-1 border-t border-slate-50 dark:border-slate-800/50">
             <span className="text-slate-400 flex items-center gap-1">
-              <Filter className="h-3 w-3" /> تصفية سريعة:
+              <Filter className="h-3 w-3" /> {language === "ar" ? "تصفية سريعة:" : "Quick filter:"}
             </span>
             <button
               onClick={() => setSelectedTagFilter("")}
               className={`px-2 py-1 rounded-md transition ${!selectedTagFilter ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"}`}
               id="clear-tag-filter"
             >
-              الكل
+              {language === "ar" ? "الكل" : "All"}
             </button>
             {allTags.map((tag) => (
               <button
@@ -402,7 +407,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-semibold">
-                    {note.surahName} • آية {note.verseNumber}
+                    {note.surahName} • {language === "ar" ? "آية" : "Verse"} {note.verseNumber}
                   </span>
                   
                   {/* Action Buttons */}
@@ -410,7 +415,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     <button
                       onClick={() => handleTogglePin(note)}
                       className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition ${note.pinned ? "text-emerald-600" : "text-slate-400"}`}
-                      title="تثبيت في الأعلى"
+                      title={language === "ar" ? "تثبيت في الأعلى" : "Pin to top"}
                       id={`pin-btn-${note.id}`}
                     >
                       <Pin className={`h-4 w-4 ${note.pinned ? "fill-emerald-600" : ""}`} />
@@ -418,7 +423,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     <button
                       onClick={() => handleToggleFavorite(note)}
                       className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition ${note.isFavorite ? "text-amber-500" : "text-slate-400"}`}
-                      title="إضافة للمفضلة"
+                      title={language === "ar" ? "إضافة للمفضلة" : "Add to favorites"}
                       id={`fav-btn-${note.id}`}
                     >
                       <Star className={`h-4 w-4 ${note.isFavorite ? "fill-amber-500 text-amber-500" : ""}`} />
@@ -426,7 +431,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     <button
                       onClick={() => handleOpenEditModal(note)}
                       className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-                      title="تعديل الخاطرة"
+                      title={t("editReflection")}
                       id={`edit-btn-${note.id}`}
                     >
                       <Edit2 className="h-4 w-4" />
@@ -434,7 +439,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     <button
                       onClick={() => handleDelete(note.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-                      title="حذف الخاطرة"
+                      title={t("deleteReflection")}
                       id={`delete-btn-${note.id}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -583,13 +588,13 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
 
               {/* Preloaded Quranic scripture preview */}
               <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-100 dark:border-slate-800 text-center relative">
-                <span className="absolute right-2 top-2 text-slate-300 dark:text-slate-800 text-xs font-semibold">نص الآية</span>
+                <span className={`absolute ${direction === 'rtl' ? 'right-2' : 'left-2'} top-2 text-slate-300 dark:text-slate-800 text-xs font-semibold`}>{t("verseTextLabel")}</span>
                 <p className="quran-font text-lg text-emerald-800 dark:text-emerald-300 leading-loose font-bold px-4 py-2">
                   {getAutofilledVerseText() || `﴿ الآية رقم ${formVerseNumber} من سورة ${selectedSurahMeta?.name || "البقرة"} ﴾`}
                 </p>
                 {!getAutofilledVerseText() && (
                   <p className="text-[10px] text-slate-400 mt-1">
-                    سيتم عرض نص الآية تلقائياً عند الحفظ.
+                    {t("verseAutoShow")}
                   </p>
                 )}
               </div>
@@ -653,7 +658,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     id="form-pinned-checkbox"
                   />
                   <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <Pin className="h-3.5 w-3.5 text-slate-400" /> تثبيت الخاطرة في الأعلى
+                    <Pin className="h-3.5 w-3.5 text-slate-400" /> {language === "ar" ? "تثبيت الخاطرة في الأعلى" : "Pin reflection to top"}
                   </span>
                 </label>
 
@@ -666,7 +671,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                     id="form-fav-checkbox"
                   />
                   <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 text-slate-400" /> إضافة إلى المفضلة
+                    <Star className="h-3.5 w-3.5 text-slate-400" /> {language === "ar" ? "إضافة إلى المفضلة" : "Add to favorites"}
                   </span>
                 </label>
               </div>
@@ -678,7 +683,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm transition font-medium"
                 >
-                  إلغاء
+                  {language === "ar" ? "إلغاء" : "Cancel"}
                 </button>
                 <button
                   type="submit"
@@ -689,12 +694,12 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>جاري الحفظ...</span>
+                      <span>{language === "ar" ? "جاري الحفظ..." : "Saving..."}</span>
                     </>
                   ) : (
                     <>
                       <Check className="h-4 w-4" />
-                      <span>{editingNote ? "حفظ التعديلات" : "إضافة الخاطرة"}</span>
+                      <span>{editingNote ? t("editReflection") : t("addReflection")}</span>
                     </>
                   )}
                 </button>

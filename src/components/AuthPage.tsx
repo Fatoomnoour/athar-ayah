@@ -90,7 +90,7 @@ export default function AuthPage() {
         </div>
         <div className="mx-auto h-16 w-16 rounded-2xl bg-white shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-center text-white mb-4 overflow-hidden">
           <img 
-            src={logoImg} 
+            src="/icon.png" 
             alt={t("appName")} 
             className="h-full w-full object-cover"
             onError={(e) => {
@@ -124,17 +124,17 @@ export default function AuthPage() {
             {isRegister && (
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("fullName")}</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <UserIcon className="h-4 w-4" />
-                  </div>
+              <div className="relative">
+                <div className={`absolute inset-y-0 ${language === "ar" ? "right-0 pr-3" : "left-0 pl-3"} flex items-center pointer-events-none text-slate-400`}>
+                  <UserIcon className="h-4 w-4" />
+                </div>
                   <input
                     type="text"
                     required
-                    placeholder="عبد الله بن مسعود"
+                    placeholder={language === "ar" ? "عبد الله بن مسعود" : "Abdullah"}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="block w-full pr-10 pl-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white"
+                    className={`block w-full ${language === "ar" ? "pr-10 pl-3" : "pl-10 pr-3"} py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white`}
                   />
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function AuthPage() {
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("email")}</label>
               <div className="relative">
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                <div className={`absolute inset-y-0 ${language === "ar" ? "right-0 pr-3" : "left-0 pl-3"} flex items-center pointer-events-none text-slate-400`}>
                   <Mail className="h-4 w-4" />
                 </div>
                 <input
@@ -152,7 +152,7 @@ export default function AuthPage() {
                   placeholder="your-email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pr-10 pl-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white text-left"
+                  className={`block w-full ${language === "ar" ? "pr-10 pl-3" : "pl-10 pr-3"} py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white text-left`}
                   dir="ltr"
                 />
               </div>
@@ -161,7 +161,7 @@ export default function AuthPage() {
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("password")}</label>
               <div className="relative">
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                <div className={`absolute inset-y-0 ${language === "ar" ? "right-0 pr-3" : "left-0 pl-3"} flex items-center pointer-events-none text-slate-400`}>
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -170,7 +170,7 @@ export default function AuthPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pr-10 pl-3 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white text-left"
+                  className={`block w-full ${language === "ar" ? "pr-10 pl-3" : "pl-10 pr-3"} py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans text-slate-800 dark:text-white text-left`}
                   dir="ltr"
                 />
               </div>
