@@ -5,6 +5,7 @@ import {
 import { User, ReadingProgress } from "../types";
 import { requestNotificationPermission, scheduleLocalNotification } from "../utils/notifications";
 import { getReadingProgress, saveReadingProgress, resetUserJourney } from "../services/firestoreService";
+import { clearTranslationCache } from "../services/translationCache";
 import { updateProfile } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useLanguage } from "../i18n";
@@ -33,6 +34,19 @@ export default function SettingsPage({
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true);
+    try {
+      await clearTranslationCache();
+      onShowToast(language === "ar" ? "تم مسح الذاكرة المؤقتة للترجمات بنجاح" : "Translation cache cleared successfully", "success");
+    } catch (error) {
+      onShowToast(language === "ar" ? "حدث خطأ أثناء مسح الذاكرة المؤقتة" : "Failed to clear cache", "error");
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -216,6 +230,37 @@ export default function SettingsPage({
                 <option value={100}>١٠٠ آية يومياً (ورد الحفاظ النشطين)</option>
               </select>
               <p className="text-[9px] text-slate-400 mt-1">يساعدك تحديد هدف الورد في تعزيز استمرارية التلاوة وضبط منبه المتابعة.</p>
+            </div>
+          </div>
+
+          {/* Section 2.4: Data Management */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
+              <RefreshCw className="h-4 w-4" />
+              <span>{language === "ar" ? "إدارة البيانات" : "Data Management"}</span>
+            </h3>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <div className="space-y-1 text-right max-w-[70%]">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {language === "ar" ? "مسح الذاكرة المؤقتة للترجمات" : "Clear Translation Cache"}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {language === "ar" ? "يمسح التراجم المحفوظة محلياً لحل مشاكل العرض أو توفير مساحة" : "Clears locally saved translations to resolve display issues or save space"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearCache}
+                disabled={isClearingCache}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isClearingCache
+                    ? "bg-slate-200 text-slate-400"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400"
+                }`}
+              >
+                {isClearingCache ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : (language === "ar" ? "مسح الكاش" : "Clear Cache")}
+              </button>
             </div>
           </div>
 

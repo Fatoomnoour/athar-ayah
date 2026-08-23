@@ -58,6 +58,28 @@ export async function getCachedTranslation(key: string): Promise<string | null> 
   }
 }
 
+export async function clearTranslationCache(): Promise<void> {
+  // Clear memory cache
+  memoryCache.clear();
+  
+  // Clear IndexedDB
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const request = db
+        .transaction(STORE_NAME, "readwrite")
+        .objectStore(STORE_NAME)
+        .clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    console.log("Translation cache cleared successfully");
+  } catch (error) {
+    console.warn("Translation cache clear failed", error);
+  }
+}
+
 export async function saveCachedTranslation(item: CachedTranslation): Promise<void> {
   try {
     const db = await openDatabase();
@@ -81,6 +103,35 @@ export type TranslationSource = "en.sahih" | "en.pickthall" | "en.yusufali";
 const memoryCache = new Map<string, string>();
 const pendingRequests = new Map<string, Promise<string | null>>();
 const MAX_MEMORY_ITEMS = 300;
+
+// Simple metrics for production monitoring
+export const cacheMetrics = {
+  hitsMemory: 0,
+  hitsDb: 0,
+  misses: 0,
+  errors: 0,
+  
+  getStats() {
+    const total = this.hitsMemory + this.hitsDb + this.misses;
+    const hitRate = total === 0 ? 0 : ((this.hitsMemory + this.hitsDb) / total) * 100;
+    return {
+      totalRequests: total,
+      memoryHits: this.hitsMemory,
+      dbHits: this.hitsDb,
+      apiFetches: this.misses,
+      errors: this.errors,
+      hitRatePercent: hitRate.toFixed(2) + "%",
+      memoryUsage: memoryCache.size
+    };
+  },
+  
+  logStats() {
+    // Only log occasionally to avoid console spam in production
+    if (Math.random() < 0.05) {
+      console.log("Translation Cache Stats:", this.getStats());
+    }
+  }
+};
 
 export function makeTranslationKey(
   source: TranslationSource | string,
@@ -112,7 +163,11 @@ export async function getTranslation(
   const key = makeTranslationKey(source, surahId, verseNumber);
 
   const memoryValue = memoryCache.get(key);
-  if (memoryValue) return memoryValue;
+  if (memoryValue) {
+    cacheMetrics.hitsMemory++;
+    cacheMetrics.logStats();
+    return memoryValue;
+  }
 
   const pending = pendingRequests.get(key);
   if (pending) return pending;
@@ -121,9 +176,13 @@ export async function getTranslation(
     const storedValue = await getCachedTranslation(key);
 
     if (storedValue) {
+      cacheMetrics.hitsDb++;
+      cacheMetrics.logStats();
       setMemoryTranslation(key, storedValue);
       return storedValue;
     }
+    
+    cacheMetrics.misses++;
 
     try {
       const response = await fetch(
@@ -149,6 +208,7 @@ export async function getTranslation(
 
       return text;
     } catch (error) {
+      cacheMetrics.errors++;
       console.warn("Translation request failed", { key, error });
       return null;
     } finally {
