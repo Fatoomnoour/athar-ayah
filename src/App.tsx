@@ -42,6 +42,7 @@ import { SURAH_VERSE_COUNTS, SURAH_LIST } from "./utils/quranUtils";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { initAnalytics, trackAppOpen } from "./lib/analytics";
 import { useFCM } from "./hooks/useFCM";
+import { LanguageProvider, useLanguage } from "./i18n";
 
 type AppTab =
   | "reader"
@@ -53,8 +54,9 @@ type AppTab =
   | "groups"
   | "settings";
 
-export default function App() {
+function AppContent() {
   useFCM();
+  const { t, language, setLanguage } = useLanguage();
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -101,11 +103,11 @@ export default function App() {
     const unsubscribe = subscribeToAuthChanges((firebaseUser) => {
       if (firebaseUser) {
         const adminEmails = ["fatoomnoour@gmail.com", "admin@athar-ayah.com"];
-        const isAdmin = firebaseUser.email ? adminEmails.includes(firebaseUser.email.toLowerCase()) : false;
-        
+          const isAdmin = firebaseUser.email ? adminEmails.includes(firebaseUser.email.toLowerCase()) : false;
+
         setCurrentUser({
           id: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email || "مستخدم",
+          name: firebaseUser.displayName || firebaseUser.email || (language === "ar" ? "مستخدم" : "User"),
           email: firebaseUser.email || "",
           photoURL: firebaseUser.photoURL || undefined,
           isAdmin
@@ -151,6 +153,10 @@ export default function App() {
 
     getReadingProgress(currentUser.id)
       .then((data) => {
+        if (data?.language === "ar" || data?.language === "en") {
+          setLanguage(data.language);
+        }
+
         if (data && data.lastSurahId) {
           const pos = {
             surahId: data.lastSurahId,
@@ -377,51 +383,51 @@ export default function App() {
   const tabs = [
     {
       id: "reader",
-      name: "المصحف",
+      name: t("reader"),
       icon: BookOpen,
-      desc: "قراءة مع تفاسير وخواطر",
+      desc: t("readerDesc"),
     },
     {
       id: "notes",
-      name: "خواطر التدبر",
+      name: t("notes"),
       icon: BookMarked,
-      desc: "تأملات وخواطر إيمانية",
+      desc: t("notesDesc"),
     },
     {
       id: "progress",
-      name: "لوحة الإنجاز",
+      name: t("progress"),
       icon: LayoutDashboard,
-      desc: "تتبع التقدم والتكرار",
+      desc: t("progressDesc"),
     },
     {
       id: "bookmarks",
-      name: "الفواصل والمفضلة",
+      name: t("bookmarks"),
       icon: Bookmark,
-      desc: "مواقع القراءة والخواطر المفضلة",
+      desc: t("bookmarksDesc"),
     },
     {
       id: "memorization",
-      name: "خطط الحفظ",
+      name: t("memorization"),
       icon: Award,
-      desc: "تخطيط تكرار الآيات",
+      desc: t("memorizationDesc"),
     },
     {
       id: "active-recitation",
-      name: "التسميع النشط",
+      name: t("activeRecitation"),
       icon: Sparkles,
-      desc: "اختبار الحفظ",
+      desc: t("activeRecitationDesc"),
     },
     {
       id: "groups",
-      name: "حلقات التدبر",
+      name: t("groups"),
       icon: Users,
-      desc: "مجتمعات للتدبر المشترك",
+      desc: t("groupsDesc"),
     },
     {
       id: "settings",
-      name: "الإعدادات",
+      name: t("settings"),
       icon: Settings,
-      desc: "تخصيص الورد الشخصي",
+      desc: t("settingsDesc"),
     },
   ] as const;
 
@@ -470,23 +476,20 @@ export default function App() {
             </div>
 
             <div className="text-right space-y-1 relative z-10">
-              <h2 className="text-lg font-black flex items-center gap-2 text-emerald-300">
-                <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
-                أفلا يتدبرون القرآن؟
-              </h2>
+                <h2 className="text-lg font-black flex items-center gap-2 text-emerald-300">
+                  <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
+                  {t("contemplationQuestion")}
+                </h2>
 
               <p className="text-xs text-emerald-100/90 leading-relaxed max-w-2xl font-serif">
-                "كِتَابٌ أَنزَلْنَاهُ إِلَيْكَ مُبَارَكٌ لِّيَدَّبَّرُوا
-                آيَاتِهِ وَلِيَتَذَكَّرَ أُولُو الْأَلْبَابِ" - سورة ص،
-                الآية ٢٩. هذا التطبيق معينك لتسجيل أثر كتاب الله في قلبك
-                وتتبع حفظك وصقل وردك اليومي.
+                {t("contemplationText")}
               </p>
             </div>
 
             <div className="text-xs text-slate-200 bg-slate-800/40 border border-slate-700/50 px-3.5 py-2 rounded-xl flex items-center gap-2 flex-shrink-0 self-end md:self-center">
-              <span>
-                التوقيت الحالي:{" "}
-                {new Date().toLocaleTimeString("ar-SA", {
+                  <span>
+                {t("currentTime")} {" "}
+                {new Date().toLocaleTimeString(language === "ar" ? "ar-SA" : "en-US", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
@@ -503,20 +506,20 @@ export default function App() {
               </div>
 
               <div>
-                <h3 className="text-sm font-black text-slate-800 dark:text-slate-100">
-                  متابعة تلاوتك ووردك اليومي
+                  <h3 className="text-sm font-black text-slate-800 dark:text-slate-100">
+                  {t("readingJourney")}
                 </h3>
 
                 {lastRead ? (
                   <p className="text-[11px] font-bold text-slate-500 mt-0.5">
-                    آخر موضع وصلت إليه:{" "}
+                    {t("lastPosition")} {" "}
                     <span className="text-emerald-600">
-                      سورة {lastRead.surahName} آية {lastRead.verseNum}
+                      {language === "ar" ? `سورة ${lastRead.surahName} آية ${lastRead.verseNum}` : `${lastRead.surahName}, verse ${lastRead.verseNum}`}
                     </span>
                   </p>
                 ) : (
                   <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                    ابدأ قراءتك اليوم لتسجيل وتتبع فواصلك وخواطرك المباركة
+                    {t("startReading")}
                   </p>
                 )}
               </div>
@@ -527,7 +530,7 @@ export default function App() {
                 onClick={() => handleNavigateToReader(1, 1)}
                 className="flex-1 md:flex-none px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition cursor-pointer text-center"
               >
-                افتح المصحف
+                {t("openQuran")}
               </button>
 
               <button
@@ -538,7 +541,7 @@ export default function App() {
                 }
                 className="flex-1 md:flex-none px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition cursor-pointer text-center"
               >
-                تابع القراءة
+                {t("continueReading")}
               </button>
             </div>
           </div>
@@ -556,7 +559,7 @@ export default function App() {
             >
               <div>
                 <span className="text-slate-400 text-xs block">
-                  إجمالي خواطرك
+                  {t("totalReflections")}
                 </span>
                 <span className="text-lg font-black text-slate-800 dark:text-slate-100 mt-1 block">
                   {isStatsLoading ? "..." : stats.notesCount}
@@ -578,7 +581,7 @@ export default function App() {
             >
               <div>
                 <span className="text-slate-400 text-xs block">
-                  السور المكتملة
+                  {t("completedSurahs")}
                 </span>
                 <span className="text-lg font-black text-slate-800 dark:text-slate-100 mt-1 block">
                   {isStatsLoading ? "..." : stats.completedSurahsCount}{" "}
@@ -601,7 +604,7 @@ export default function App() {
             >
               <div>
                 <span className="text-slate-400 text-xs block">
-                  الفواصل والمفضلة
+                  {t("bookmarksAndFavorites")}
                 </span>
                 <span className="text-lg font-black text-slate-800 dark:text-slate-100 mt-1 block">
                   {isStatsLoading
@@ -625,7 +628,7 @@ export default function App() {
             >
               <div>
                 <span className="text-slate-400 text-xs block">
-                  خطط الحفظ النشطة
+                  {t("activePlans")}
                 </span>
                 <span className="text-lg font-black text-slate-800 dark:text-slate-100 mt-1 block">
                   {isStatsLoading ? "..." : stats.plansCount}
@@ -791,16 +794,16 @@ export default function App() {
       <footer className="w-full max-w-7xl mx-auto px-4 py-8 mt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-right">
         <div>
           <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-1">
-            أثر آية
+            {t("appName")}
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            منصة قرآنية متكاملة لتدبر وحفظ القرآن الكريم
+            {t("footerDescription")}
           </p>
         </div>
 
         <div className="flex flex-col items-center md:items-end gap-1">
           <span className="text-xs text-slate-500 font-bold">
-            تطوير وتصميم:
+              {t("developedBy")}
           </span>
           <a
             href="https://www.linkedin.com/in/fatma-nour-ai-trainer"
@@ -811,7 +814,7 @@ export default function App() {
             Fatma Nour (AI Trainer)
           </a>
           <span className="text-[10px] text-slate-400 mt-1">
-            للتواصل والاقتراحات
+            {t("contactSuggestions")}
           </span>
         </div>
       </footer>
@@ -828,5 +831,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }

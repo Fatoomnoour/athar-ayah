@@ -8,6 +8,7 @@ import SpacedRepetitionExplanation from "./SpacedRepetitionExplanation";
 import { formatFirestoreDate } from "../utils/dateUtils";
 import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
 import { getUserMemorizationPlans, createMemorizationPlan, deleteMemorizationPlan, updateMemorizationPlan } from "../services/firestoreService";
+import { useLanguage } from "../i18n";
 
 interface MemorizationTabProps {
   currentUser: User | null;
@@ -16,6 +17,7 @@ interface MemorizationTabProps {
 }
 
 export default function MemorizationTab({ currentUser, onRefreshStats, onShowToast }: MemorizationTabProps) {
+  const { direction, language } = useLanguage();
   const [plans, setPlans] = useState<MemorizationPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -360,7 +362,7 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
           </div>
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-sm">إلغاء</button>
-            <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center gap-2">{isSubmitting ? "جاري الحفظ..." : "حفظ وبدء المراجعة"}</button>
+            <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center gap-2">                {isSubmitting ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ وبدء المراجعة" : "Save and start review")}</button>
           </div>
         </form>
       )}
@@ -368,14 +370,14 @@ export default function MemorizationTab({ currentUser, onRefreshStats, onShowToa
       {plans.length === 0 && !isAdding ? (
         <div className="bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center">
           <BookOpen className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-bold text-slate-600 dark:text-slate-300 mb-1">لا توجد خطط حفظ</h3>
-          <p className="text-sm text-slate-400">أضف خطتك الأولى لتبدأ رحلة الحفظ المتقن.</p>
+          <h3 className="font-bold text-slate-600 dark:text-slate-300 mb-1">{language === "ar" ? "لا توجد خطط حفظ" : "No memorization plans yet"}</h3>
+          <p className="text-sm text-slate-400">{language === "ar" ? "أضف خطتك الأولى لتبدأ رحلة الحفظ المتقن." : "Add your first plan to begin a focused memorization journey."}</p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6" dir={direction}>
           {categories.overdueReviews.length > 0 && (
             <div>
-              <h3 className="text-sm font-black text-red-600 mb-4 flex items-center gap-2"><AlertCircle className="h-4 w-4"/> آيات متأخرة المراجعة</h3>
+              <h3 className="text-sm font-black text-red-600 mb-4 flex items-center gap-2"><AlertCircle className="h-4 w-4"/> {language === "ar" ? "آيات متأخرة المراجعة" : "Reviews due"}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.overdueReviews.map(renderPlanCard)}
               </div>

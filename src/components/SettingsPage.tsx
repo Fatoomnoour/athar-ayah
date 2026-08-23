@@ -7,6 +7,7 @@ import { requestNotificationPermission, scheduleLocalNotification } from "../uti
 import { getReadingProgress, saveReadingProgress, resetUserJourney } from "../services/firestoreService";
 import { updateProfile } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { useLanguage } from "../i18n";
 
 interface SettingsPageProps {
   currentUser: User | null;
@@ -23,6 +24,7 @@ export default function SettingsPage({
   onShowToast,
   onRefreshStats
 }: SettingsPageProps) {
+  const { language, direction, setLanguage, t } = useLanguage();
   const [displayName, setDisplayName] = useState<string>("");
   const [dailyGoal, setDailyGoal] = useState<number>(10);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -97,11 +99,12 @@ export default function SettingsPage({
       }
 
       await saveReadingProgress(currentUser.id, {
-        dailyGoalVerses: Number(dailyGoal)
+        dailyGoalVerses: Number(dailyGoal),
+        language,
       });
 
-      onUpdateUser({ ...currentUser, name: displayName });
-      onShowToast("تم حفظ التعديلات وإعدادات الحفظ والورد بنجاح! ⚙️", "success");
+      onUpdateUser({ ...currentUser, name: displayName, language });
+      onShowToast(t("settingsSaved"), "success");
       onRefreshStats();
     } catch (err) {
       onShowToast("فشل حفظ التعديلات، يرجى المحاولة لاحقاً", "error");
@@ -133,16 +136,31 @@ export default function SettingsPage({
 
 
   return (
-    <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 md:p-8 space-y-6 text-right font-sans" dir="rtl">
+    <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 md:p-8 space-y-6 text-right font-sans" dir={direction}>
       
       <div className="flex items-center gap-2 border-b pb-4">
         <Settings className="h-5.5 w-5.5 text-emerald-600" />
-        <h2 className="text-base font-black text-slate-800 dark:text-white">إعدادات الحساب وتفضيلات الورد</h2>
+        <h2 className="text-base font-black text-slate-800 dark:text-white">{t("settingsTitle")}</h2>
       </div>
 
       {currentUser ? (
         <form onSubmit={handleSaveSettings} className="space-y-6">
           
+          {/* Language preference */}
+          <div className="space-y-2 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 p-4">
+            <label htmlFor="settings-language" className="block text-xs font-black text-emerald-700 dark:text-emerald-300">{t("language")}</label>
+            <select
+              id="settings-language"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as "ar" | "en")}
+              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-900 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="ar">{t("arabic")}</option>
+              <option value="en">{t("english")}</option>
+            </select>
+            <p className="text-[10px] leading-relaxed text-emerald-800/70 dark:text-emerald-300/70">{t("languageHelp")}</p>
+          </div>
+
           {/* Section 1: User Profile */}
           <div className="space-y-4">
             <h3 className="text-xs font-black text-emerald-600 flex items-center gap-1.5">

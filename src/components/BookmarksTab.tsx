@@ -12,6 +12,7 @@ import { Bookmark as BookmarkType, QuranNote, User } from "../types";
 import { VERIFIED_VERSES } from "../data/verses";
 import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
 import { formatFirestoreDate } from "../utils/dateUtils";
+import { useLanguage } from "../i18n";
 import {
   getUserBookmarks,
   getUserNotes,
@@ -41,6 +42,7 @@ export default function BookmarksTab({
   onRefreshStats,
   onNavigateToReader,
 }: BookmarksTabProps) {
+  const { t, direction, language } = useLanguage();
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [favoriteNotes, setFavoriteNotes] = useState<QuranNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,13 +224,13 @@ export default function BookmarksTab({
   if (isLoading) {
     return (
       <div className="py-20 text-center text-slate-400 text-sm">
-        جاري تحميل الفواصل والمفضلة...
+        {language === "ar" ? "جاري تحميل الفواصل والمفضلة..." : "Loading bookmarks and favorites..."}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={direction}>
       <div className="bg-gradient-to-l from-teal-850 to-teal-950 dark:from-slate-900 dark:to-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-right">
           <div className="p-3 bg-teal-100 dark:bg-emerald-950/40 text-teal-700 dark:text-emerald-400 rounded-2xl">
@@ -237,10 +239,10 @@ export default function BookmarksTab({
 
           <div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">
-              الفواصل والمحفوظات الإيمانية
+              {language === "ar" ? "الفواصل والمحفوظات الإيمانية" : "Saved Quran moments"}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-              مكان موحّد لجمع علاماتك المرجعية والخواطر والتدبرات المفضلة لديك للوصول السريع إليها.
+              {language === "ar" ? "مكان موحّد لجمع علاماتك المرجعية والخواطر والتدبرات المفضلة لديك للوصول السريع إليها." : "One place for your bookmarks and favorite reflections."}
             </p>
           </div>
         </div>
@@ -354,7 +356,7 @@ export default function BookmarksTab({
               ) : (
                 <>
                   <Check className="h-3.5 w-3.5" />
-                  <span>حفظ العلامة</span>
+                  <span>{language === "ar" ? "حفظ العلامة" : "Save bookmark"}</span>
                 </>
               )}
             </button>
@@ -367,13 +369,13 @@ export default function BookmarksTab({
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
             <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2 mb-3">
               <Bookmark className="h-4.5 w-4.5 text-emerald-600 fill-emerald-100 dark:fill-emerald-950" />
-              <span>علاماتي المرجعية (الفواصل) ({bookmarks.length})</span>
+              <span>{language === "ar" ? "علاماتي المرجعية (الفواصل)" : "My bookmarks"} ({bookmarks.length})</span>
             </h3>
 
             {bookmarks.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs">
                 <Bookmark className="h-8 w-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
-                <p>لم تحفظ أي علامات مرجعية حتى الآن.</p>
+                <p>{language === "ar" ? "لم تحفظ أي علامات مرجعية حتى الآن." : "No bookmarks saved yet."}</p>
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
@@ -427,7 +429,7 @@ export default function BookmarksTab({
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col">
           <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2 mb-3">
             <Star className="h-4.5 w-4.5 text-amber-500 fill-amber-100 dark:fill-amber-950" />
-            <span>الخواطر المفضلة ({favoriteNotes.length})</span>
+            <span>{language === "ar" ? "الخواطر المفضلة" : "Favorite reflections"} ({favoriteNotes.length})</span>
           </h3>
 
           {favoriteNotes.length === 0 ? (

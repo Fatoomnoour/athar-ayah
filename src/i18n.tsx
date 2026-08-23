@@ -1,0 +1,236 @@
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { Language } from "./types";
+
+type TranslationKey = keyof typeof translations.ar;
+
+const translations = {
+  ar: {
+    appName: "أثر آية",
+    appTagline: "تتبع حفظ منظم",
+    language: "اللغة",
+    arabic: "العربية",
+    english: "English",
+    switchLanguage: "تغيير اللغة",
+    theme: "المظهر",
+    light: "فاتح",
+    dark: "داكن",
+    system: "تلقائي",
+    logout: "تسجيل الخروج",
+    login: "تسجيل الدخول",
+    register: "إنشاء حساب جديد",
+    reader: "المصحف",
+    readerDesc: "قراءة مع تفاسير وخواطر",
+    notes: "خواطر التدبر",
+    notesDesc: "تأملات وخواطر إيمانية",
+    progress: "لوحة الإنجاز",
+    progressDesc: "تتبع التقدم والاستمرارية",
+    bookmarks: "الفواصل والمفضلة",
+    bookmarksDesc: "مواقع القراءة والخواطر المفضلة",
+    memorization: "خطط الحفظ",
+    memorizationDesc: "تخطيط تكرار الآيات",
+    activeRecitation: "التسميع النشط",
+    activeRecitationDesc: "اختبار الحفظ",
+    groups: "حلقات التدبر",
+    groupsDesc: "مجتمعات للتدبر المشترك",
+    settings: "الإعدادات",
+    settingsDesc: "تخصيص الورد الشخصي",
+    contemplationQuestion: "أفلا يتدبرون القرآن؟",
+    contemplationText: "هذا التطبيق معينك لتسجيل أثر كتاب الله في قلبك وتتبع حفظك وصقل وردك اليومي.",
+    currentTime: "التوقيت الحالي:",
+    readingJourney: "متابعة تلاوتك ووردك اليومي",
+    lastPosition: "آخر موضع وصلت إليه:",
+    startReading: "ابدأ قراءتك اليوم لتسجيل وتتبع فواصلك وخواطرك المباركة",
+    openQuran: "افتح المصحف",
+    continueReading: "تابع القراءة",
+    totalReflections: "إجمالي خواطرك",
+    completedSurahs: "السور المكتملة",
+    bookmarksAndFavorites: "الفواصل والمفضلة",
+    activePlans: "خطط الحفظ النشطة",
+    saveSettings: "حفظ الإعدادات",
+    settingsTitle: "إعدادات الحساب وتفضيلات الورد",
+    languageHelp: "اختاري لغة واجهة التطبيق. نصوص القرآن والآيات تبقى بالعربية حفاظاً على دقتها.",
+    loginToEdit: "الرجاء تسجيل الدخول لتتمكن من تعديل الإعدادات والتحكم بأهداف وردك الشخصي.",
+    freeNoAds: "مجاني وبدون إعلانات إن شاء الله",
+    footerDescription: "منصة قرآنية متكاملة لتدبر وحفظ القرآن الكريم",
+    developedBy: "تطوير وتصميم:",
+    contactSuggestions: "للتواصل والاقتراحات",
+    authLoginTitle: "تسجيل الدخول إلى أثر آية",
+    authRegisterTitle: "إنشاء حساب جديد",
+    authLoginSubtitle: "عد لمتابعة خواطرك، تلاوتك اليومية ومراجعة حفظك",
+    authRegisterSubtitle: "ابدأ رحلتك الإيمانية لتدبر القرآن الكريم وتتبع حفظك",
+    fullName: "الاسم الكامل",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    createAndStart: "إنشاء الحساب وبدء التجربة",
+    quickGoogle: "الدخول السريع بحساب Google",
+    googleButton: "تسجيل دخول موحّد بنقرة واحدة",
+    or: "أو",
+    noAccount: "ليس لديك حساب؟ إنشاء حساب جديد",
+    haveAccount: "تمتلك حساباً بالفعل؟ تسجيل الدخول",
+    firebaseIncomplete: "إعدادات Firebase غير مكتملة، يرجى إعداد متغيرات البيئة قبل النشر.",
+    requiredFields: "الرجاء ملء جميع الحقول المطلوبة",
+    emailExists: "هذا البريد الإلكتروني مسجل مسبقًا، جرب تسجيل الدخول بدلاً من ذلك.",
+    invalidCredentials: "بيانات الدخول غير صحيحة، يرجى التأكد من البريد وكلمة المرور.",
+    weakPassword: "كلمة المرور ضعيفة جدًا، يرجى استخدام 6 أحرف على الأقل.",
+    authError: "حدث خطأ ما أثناء المصادقة، تأكد من اتصالك بالإنترنت.",
+    googleError: "فشل تسجيل الدخول عبر جوجل:",
+    loginSuccess: "تم تسجيل الدخول بنجاح.",
+    logoutSuccess: "تم تسجيل خروجك بنجاح.",
+    settingsSaved: "تم حفظ التعديلات وإعدادات الحفظ والورد بنجاح.",
+    quranReaderTitle: "المصحف والتدبر",
+    chooseSurah: "اختر السورة",
+    chooseJuz: "اختر الجزء",
+    searchQuran: "ابحث في القرآن",
+    tafsir: "التفسير",
+    translation: "الترجمة",
+    reflections: "الخواطر",
+    memorize: "الحفظ",
+    addReflection: "أضف خاطرة",
+    saveBookmark: "حفظ الفاصل",
+    memorizationTitle: "خطط الحفظ",
+    activeRecitationTitle: "التسميع النشط",
+    progressTitle: "رحلتي مع القرآن",
+    notesTitle: "خواطر التدبر",
+    bookmarksTitle: "الفواصل والمفضلة",
+    groupsTitle: "حلقات التدبر",
+  },
+  en: {
+    appName: "Athar Ayah",
+    appTagline: "Organized memorization tracking",
+    language: "Language",
+    arabic: "العربية",
+    english: "English",
+    switchLanguage: "Change language",
+    theme: "Appearance",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+    logout: "Sign out",
+    login: "Sign in",
+    register: "Create an account",
+    reader: "Quran",
+    readerDesc: "Reading, tafsir and reflections",
+    notes: "Reflections",
+    notesDesc: "Faith-based thoughts and notes",
+    progress: "Progress",
+    progressDesc: "Track consistency and progress",
+    bookmarks: "Bookmarks & favorites",
+    bookmarksDesc: "Saved reading locations and notes",
+    memorization: "Memorization plans",
+    memorizationDesc: "Plan verse repetition",
+    activeRecitation: "Active recitation",
+    activeRecitationDesc: "Test your memorization",
+    groups: "Reflection circles",
+    groupsDesc: "Communities for shared reflection",
+    settings: "Settings",
+    settingsDesc: "Personalize your daily wird",
+    contemplationQuestion: "Will they not reflect on the Quran?",
+    contemplationText: "A calm companion for recording the impact of the Quran, tracking memorization and building a daily wird.",
+    currentTime: "Current time:",
+    readingJourney: "Continue your Quran journey",
+    lastPosition: "Last position:",
+    startReading: "Start reading today to track bookmarks and reflections.",
+    openQuran: "Open Quran",
+    continueReading: "Continue reading",
+    totalReflections: "Total reflections",
+    completedSurahs: "Completed surahs",
+    bookmarksAndFavorites: "Bookmarks & favorites",
+    activePlans: "Active memorization plans",
+    saveSettings: "Save settings",
+    settingsTitle: "Account settings and wird preferences",
+    languageHelp: "Choose the app interface language. Quran text and verses remain in Arabic for accuracy.",
+    loginToEdit: "Please sign in to edit settings and manage your personal wird goals.",
+    freeNoAds: "Free and ad-free, inshaAllah",
+    footerDescription: "A complete Quran platform for reflection and memorization",
+    developedBy: "Designed and developed by:",
+    contactSuggestions: "Contact and suggestions",
+    authLoginTitle: "Sign in to Athar Ayah",
+    authRegisterTitle: "Create a new account",
+    authLoginSubtitle: "Return to your reflections, daily reading and memorization review",
+    authRegisterSubtitle: "Start your Quran reflection journey and track memorization",
+    fullName: "Full name",
+    email: "Email address",
+    password: "Password",
+    createAndStart: "Create account and start",
+    quickGoogle: "Quick sign-in with Google",
+    googleButton: "Continue with Google",
+    or: "OR",
+    noAccount: "Don't have an account? Create one",
+    haveAccount: "Already have an account? Sign in",
+    firebaseIncomplete: "Firebase settings are incomplete. Configure the environment variables before deployment.",
+    requiredFields: "Please complete all required fields.",
+    emailExists: "This email is already registered. Try signing in instead.",
+    invalidCredentials: "Invalid credentials. Check your email and password.",
+    weakPassword: "Password is too weak. Use at least 6 characters.",
+    authError: "Authentication failed. Check your internet connection.",
+    googleError: "Google sign-in failed:",
+    loginSuccess: "Signed in successfully.",
+    logoutSuccess: "You have been signed out successfully.",
+    settingsSaved: "Settings and wird preferences saved successfully.",
+    quranReaderTitle: "Quran & reflection",
+    chooseSurah: "Choose a surah",
+    chooseJuz: "Choose a juz",
+    searchQuran: "Search the Quran",
+    tafsir: "Tafsir",
+    translation: "Translation",
+    reflections: "Reflections",
+    memorize: "Memorize",
+    addReflection: "Add a reflection",
+    saveBookmark: "Save bookmark",
+    memorizationTitle: "Memorization plans",
+    activeRecitationTitle: "Active recitation",
+    progressTitle: "My Quran journey",
+    notesTitle: "Reflections",
+    bookmarksTitle: "Bookmarks & favorites",
+    groupsTitle: "Reflection circles",
+  },
+} as const;
+
+interface LanguageContextValue {
+  language: Language;
+  direction: "rtl" | "ltr";
+  setLanguage: (language: Language) => void;
+  t: (key: TranslationKey) => string;
+}
+
+const LanguageContext = createContext<LanguageContextValue | null>(null);
+
+function getInitialLanguage(): Language {
+  if (typeof window === "undefined") return "ar";
+  const saved = window.localStorage.getItem("athar_language");
+  if (saved === "ar" || saved === "en") return saved;
+  return navigator.language.toLowerCase().startsWith("ar") ? "ar" : "en";
+}
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+  const direction = language === "ar" ? "rtl" : "ltr";
+
+  const setLanguage = (nextLanguage: Language) => {
+    setLanguageState(nextLanguage);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("athar_language", nextLanguage);
+    }
+  };
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = direction;
+    document.body.dir = direction;
+  }, [language, direction]);
+
+  const value = useMemo<LanguageContextValue>(() => ({
+    language,
+    direction,
+    setLanguage,
+    t: (key) => translations[language][key],
+  }), [language, direction]);
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (!context) throw new Error("useLanguage must be used inside LanguageProvider");
+  return context;
+}

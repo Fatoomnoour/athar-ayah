@@ -1,3 +1,5 @@
+export type Language = "ar" | "en";
+
 export interface User {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface User {
   photoURL?: string;
   displayName?: string;
   isAdmin?: boolean;
+  language?: Language;
 }
 
 export interface QuranNote {
@@ -76,6 +79,7 @@ export interface ReadingProgress {
   completedChallengeIds?: string[];
   challenges?: Challenge[];
   
+  language?: Language;
   updatedAt: string;
 }
 

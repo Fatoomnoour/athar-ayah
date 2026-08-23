@@ -8,6 +8,7 @@ import { VERIFIED_VERSES } from "../data/verses";
 import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
 import { formatFirestoreDate } from "../utils/dateUtils";
 import { getUserNotes, deleteNote, updateNote, createNote } from "../services/firestoreService";
+import { useLanguage } from "../i18n";
 
 interface NotesTabProps {
   currentUser: User | null;
@@ -15,6 +16,7 @@ interface NotesTabProps {
 }
 
 export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps) {
+  const { t, direction, language } = useLanguage();
   const [notes, setNotes] = useState<QuranNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -280,7 +282,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={direction}>
       {/* Search and Action Bar */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
         <div className="flex flex-col md:flex-row gap-3">
@@ -289,7 +291,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
             <Search className="absolute right-3 top-3 h-5 w-5 text-slate-400" />
             <input
               type="text"
-              placeholder="ابحث في الخواطر، الآيات، أو السور..."
+              placeholder={t("searchQuran")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
@@ -305,10 +307,10 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
               className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-sm text-slate-700 dark:text-slate-300"
               id="filter-surah-select"
             >
-              <option value="">كل السور</option>
+              <option value="">{language === "ar" ? "كل السور" : "All surahs"}</option>
               {SURAHS.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.verses} آية)
+                  {s.name} ({s.verses} {language === "ar" ? "آية" : "verses"})
                 </option>
               ))}
             </select>
@@ -320,7 +322,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
               className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-sm text-slate-700 dark:text-slate-300"
               id="filter-tag-select"
             >
-              <option value="">كل التصنيفات</option>
+              <option value="">{language === "ar" ? "كل التصنيفات" : "All tags"}</option>
               {allTags.map((tag) => (
                 <option key={tag} value={tag}>
                   #{tag}
@@ -335,7 +337,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
               id="add-note-btn"
             >
               <Plus className="h-4 w-4" />
-              <span>خاطرة جديدة</span>
+              <span>{language === "ar" ? "خاطرة جديدة" : "New reflection"}</span>
             </button>
           </div>
         </div>
@@ -371,14 +373,14 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600"></div>
-          <p className="text-slate-400 text-sm">جاري تحميل خواطر التدبر...</p>
+          <p className="text-slate-400 text-sm">{language === "ar" ? "جاري تحميل خواطر التدبر..." : "Loading reflections..."}</p>
         </div>
       ) : notes.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center border border-slate-100 dark:border-slate-800 max-w-lg mx-auto">
           <Bookmark className="h-12 w-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">لا توجد خواطر بعد</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">{language === "ar" ? "لا توجد خواطر بعد" : "No reflections yet"}</h3>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-            التدبر هو روح القراءة. دوّن أولى خواطرك الإيمانية وتأملاتك لآيات القرآن الكريم للرجوع إليها دائماً.
+            {language === "ar" ? "التدبر هو روح القراءة. دوّن أولى خواطرك الإيمانية وتأملاتك لآيات القرآن الكريم للرجوع إليها دائماً." : "Reflection turns reading into a lasting habit. Write your first thoughts about the verses and revisit them anytime."}
           </p>
           <button
             onClick={handleOpenCreateModal}
@@ -386,7 +388,7 @@ export default function NotesTab({ currentUser, onRefreshStats }: NotesTabProps)
             id="create-first-note-btn"
           >
             <Plus className="h-4 w-4" />
-            <span>ابدأ التدوين الآن</span>
+            <span>{language === "ar" ? "ابدأ التدوين الآن" : "Start writing"}</span>
           </button>
         </div>
       ) : (

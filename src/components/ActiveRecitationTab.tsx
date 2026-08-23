@@ -750,7 +750,7 @@ export default function ActiveRecitationTab({
 
       <div className="mb-8">
         <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-3">
-          مستوى الإخفاء
+          {language === "ar" ? "مستوى الإخفاء" : "Difficulty level"}
         </label>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -806,7 +806,7 @@ export default function ActiveRecitationTab({
         className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-black rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
       >
         <CheckCircle className="h-5 w-5" />
-        {isStartingSession ? "جاري بدء التسميع..." : "ابدأ التسميع الآن"}
+        {isStartingSession ? (language === "ar" ? "جاري بدء التسميع..." : "Preparing verses...") : (language === "ar" ? "ابدأ التسميع الآن" : "Start Recitation")}
       </button>
     </div>
   );

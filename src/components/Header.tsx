@@ -1,8 +1,9 @@
 import logoImg from "../assets/images/athar_ayah_logo_1783253623984.jpg";
 import React, { useState } from "react";
-import { BookOpen, LogOut, Sun, Moon, Monitor, User, LogIn } from "lucide-react";
+import { BookOpen, LogOut, Sun, Moon, Monitor, User, LogIn, Languages } from "lucide-react";
 import { User as UserType } from "../types";
 import { Theme, useDarkMode } from "../hooks/useDarkMode";
+import { useLanguage } from "../i18n";
 
 interface HeaderProps {
   currentUser: UserType | null;
@@ -14,6 +15,7 @@ export default function Header({
   onLogout 
 }: HeaderProps) {
   const { isDark, theme, setTheme } = useDarkMode();
+  const { language, setLanguage, t } = useLanguage();
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
   return (
@@ -26,20 +28,34 @@ export default function Header({
           </div>
           <div className="flex flex-col">
             <h1 className="text-xl font-black tracking-tight text-slate-800 dark:text-white leading-none">
-              <span className="text-emerald-600">أثر</span> آية
+              {language === "ar" ? <><span className="text-emerald-600">أثر</span> آية</> : "Athar Ayah"}
             </h1>
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5 tracking-wide">تتبع حفظ منظم</p>
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5 tracking-wide">{t("appTagline")}</p>
           </div>
         </div>
 
         {/* Action Tools */}
         <div className="flex items-center gap-3">
+          {/* Language Toggle */}
+          <label className="flex items-center gap-1.5 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold" title={t("switchLanguage")}>
+            <Languages className="h-4 w-4 text-emerald-600" />
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as "ar" | "en")}
+              className="bg-transparent outline-none cursor-pointer"
+              aria-label={t("switchLanguage")}
+            >
+              <option value="ar">{t("arabic")}</option>
+              <option value="en">{t("english")}</option>
+            </select>
+          </label>
+
           {/* Theme Toggle */}
           <div className="relative">
             <button
               onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
               className="p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
-              aria-label="تبديل المظهر"
+              aria-label={t("theme")}
             >
               {theme === 'system' ? <Monitor className="h-5 w-5" /> : isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5 text-amber-500" />}
             </button>
@@ -52,19 +68,19 @@ export default function Header({
                     onClick={() => { setTheme('light'); setIsThemeMenuOpen(false); }}
                     className={`flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${theme === 'light' ? 'text-emerald-600' : 'text-slate-600 dark:text-slate-300'}`}
                   >
-                    <Sun className="h-4 w-4" /> فاتح
+                    <Sun className="h-4 w-4" /> {t("light")}
                   </button>
                   <button 
                     onClick={() => { setTheme('dark'); setIsThemeMenuOpen(false); }}
                     className={`flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${theme === 'dark' ? 'text-emerald-600' : 'text-slate-600 dark:text-slate-300'}`}
                   >
-                    <Moon className="h-4 w-4" /> داكن
+                    <Moon className="h-4 w-4" /> {t("dark")}
                   </button>
                   <button 
                     onClick={() => { setTheme('system'); setIsThemeMenuOpen(false); }}
                     className={`flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-t border-slate-100 dark:border-slate-700 ${theme === 'system' ? 'text-emerald-600' : 'text-slate-600 dark:text-slate-300'}`}
                   >
-                    <Monitor className="h-4 w-4" /> تلقائي
+                    <Monitor className="h-4 w-4" /> {t("system")}
                   </button>
                 </div>
               </>
@@ -100,7 +116,7 @@ export default function Header({
               <button
                 onClick={onLogout}
                 className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 text-rose-600 rounded-lg transition"
-                title="تسجيل الخروج"
+                title={t("logout")}
               >
                 <LogOut className="h-4 w-4" />
               </button>

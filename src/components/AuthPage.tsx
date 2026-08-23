@@ -4,8 +4,10 @@ import { Compass, Mail, Lock, User as UserIcon, Sparkles, AlertCircle, ArrowRigh
 import { User } from "../types";
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from "../services/authService";
 import { isFirebaseConfigured } from "../lib/firebase";
+import { useLanguage } from "../i18n";
 
 export default function AuthPage() {
+  const { t, language, setLanguage, direction } = useLanguage();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,11 +19,11 @@ export default function AuthPage() {
     e.preventDefault();
     setError("");
     if (!isFirebaseConfigured) {
-      setError("إعدادات Firebase غير مكتملة، يرجى إعداد متغيرات البيئة قبل النشر.");
+      setError(t("firebaseIncomplete"));
       return;
     }
     if (!email || !password || (isRegister && !name)) {
-      setError("الرجاء ملء جميع الحقول المطلوبة");
+      setError(t("requiredFields"));
       return;
     }
 
@@ -37,13 +39,13 @@ export default function AuthPage() {
       
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
-        setError("هذا البريد الإلكتروني مسجل مسبقًا، جرب تسجيل الدخول بدلاً من ذلك.");
+        setError(t("emailExists"));
       } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-        setError("بيانات الدخول غير صحيحة، يرجى التأكد من البريد وكلمة المرور.");
+        setError(t("invalidCredentials"));
       } else if (err.code === "auth/weak-password") {
-        setError("كلمة المرور ضعيفة جدًا، يرجى استخدام 6 أحرف على الأقل.");
+        setError(t("weakPassword"));
       } else {
-        setError(err.message || "حدث خطأ ما أثناء المصادقة، تأكد من اتصالك بالإنترنت.");
+        setError(err.message || t("authError"));
       }
     } finally {
       setIsLoading(false);
@@ -53,7 +55,7 @@ export default function AuthPage() {
   const handleGoogleAuth = async () => {
     setError("");
     if (!isFirebaseConfigured) {
-      setError("إعدادات Firebase غير مكتملة، يرجى إعداد متغيرات البيئة قبل النشر.");
+      setError(t("firebaseIncomplete"));
       return;
     }
     setIsLoading(true);
@@ -62,7 +64,7 @@ export default function AuthPage() {
       
     } catch (err: any) {
       if (err.code !== "auth/popup-closed-by-user") {
-        setError("فشل تسجيل الدخول عبر جوجل: " + err.message);
+        setError(`${t("googleError")} ${err.message}`);
       }
     } finally {
       setIsLoading(false);
@@ -70,12 +72,26 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans" dir="rtl">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans" dir={direction}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="flex justify-end mb-4">
+          <label className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300">
+            <span>{t("language")}</span>
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as "ar" | "en")}
+              className="bg-transparent outline-none cursor-pointer"
+              aria-label={t("switchLanguage")}
+            >
+              <option value="ar">{t("arabic")}</option>
+              <option value="en">{t("english")}</option>
+            </select>
+          </label>
+        </div>
         <div className="mx-auto h-16 w-16 rounded-2xl bg-white shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-center text-white mb-4 overflow-hidden">
           <img 
             src={logoImg} 
-            alt="شعار أثر آية" 
+            alt={t("appName")} 
             className="h-full w-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -86,10 +102,10 @@ export default function AuthPage() {
         </div>
         
         <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-          {isRegister ? "إنشاء حساب جديد" : "تسجيل الدخول إلى أثر آية"}
+          {isRegister ? t("authRegisterTitle") : t("authLoginTitle")}
         </h2>
         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-          {isRegister ? "ابدأ رحلتك الإيمانية لتدبر القرآن الكريم وتتبع حفظك" : "عد لمتابعة خواطرك، تلاوتك اليومية ومراجعة حفظك"}
+          {isRegister ? t("authRegisterSubtitle") : t("authLoginSubtitle")}
         </p>
       </div>
 
@@ -107,7 +123,7 @@ export default function AuthPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isRegister && (
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">الاسم الكامل</label>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("fullName")}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <UserIcon className="h-4 w-4" />
@@ -125,7 +141,7 @@ export default function AuthPage() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">البريد الإلكتروني</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("email")}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                   <Mail className="h-4 w-4" />
@@ -143,7 +159,7 @@ export default function AuthPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">كلمة المرور</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t("password")}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="h-4 w-4" />
@@ -168,7 +184,7 @@ export default function AuthPage() {
               {isLoading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
-                <span>{isRegister ? "إنشاء الحساب وبدء التجربة" : "تسجيل الدخول"}</span>
+                <span>{isRegister ? t("createAndStart") : t("login")}</span>
               )}
             </button>
           </form>
@@ -177,14 +193,14 @@ export default function AuthPage() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
             </div>
-            <span className="relative px-3 bg-white dark:bg-slate-900 text-[10px] text-slate-400 uppercase font-bold">أو</span>
+            <span className="relative px-3 bg-white dark:bg-slate-900 text-[10px] text-slate-400 uppercase font-bold">{t("or")}</span>
           </div>
 
           {/* Google SSO */}
           <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 rounded-2xl space-y-3.5">
             <div className="flex items-center justify-center gap-2 text-emerald-800 dark:text-emerald-400 mb-2">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              <h4 className="text-xs font-black">الدخول السريع بحساب Google</h4>
+              <h4 className="text-xs font-black">{t("quickGoogle")}</h4>
             </div>
 
             <button
@@ -199,7 +215,7 @@ export default function AuthPage() {
                 <path fill="#FBBC05" d="M5.08 14.72a7.126 7.126 0 010-4.44L1.24 7.3a11.97 11.97 0 000 9.4l3.84-2.98z" />
                 <path fill="#34A853" d="M12 23c3.24 0 5.97-1.08 7.96-2.91l-3.65-2.83c-1.01.68-2.31 1.09-3.96 1.09-3.21 0-5.99-2.21-6.92-5.17L1.24 16.7C3.2 20.26 7.24 23 12 23z" />
               </svg>
-              <span>تسجيل دخول موحّد بنقرة واحدة</span>
+              <span>{t("googleButton")}</span>
             </button>
           </div>
 
@@ -208,7 +224,7 @@ export default function AuthPage() {
               onClick={() => setIsRegister(!isRegister)}
               className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold transition cursor-pointer"
             >
-              {isRegister ? "تمتلك حساباً بالفعل؟ تسجيل الدخول" : "ليس لديك حساب؟ إنشاء حساب جديد"}
+              {isRegister ? t("haveAccount") : t("noAccount")}
             </button>
           </div>
 
