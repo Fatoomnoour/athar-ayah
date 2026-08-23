@@ -18,6 +18,11 @@ import {
   createMemorizationPlan,
   updateAdvancedStats 
 } from "../services/firestoreService";
+import {
+  getTranslation,
+  makeTranslationKey,
+  loadInBatches
+} from "../services/translationCache";
 import { trackSurahOpen, trackAyahRead, trackBookmarkAdded, trackReflectionCreated, trackMemorizationPlanCreated } from "../lib/analytics";
 
 interface QuranReaderProps {
@@ -260,21 +265,18 @@ export default function QuranReader({
           ? verses.filter(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)
           : verses;
 
-        for (const verse of versesToFetch) {
-          const key = `${verse.surahId || selectedSurah}:${verse.numberInSurah}`;
+        await loadInBatches(versesToFetch, 4, async (verse: any) => {
+          const surahId = verse.surahId || selectedSurah;
+          const key = makeTranslationKey(translationSource, surahId, verse.numberInSurah);
+          
           if (!newTranslations[key]) {
-            try {
-              const res = await fetch(`https://api.alquran.cloud/v1/ayah/${key}/${translationSource}`);
-              if (res.ok) {
-                const data = await res.json();
-                newTranslations[key] = data.data?.text || "";
-                hasNew = true;
-              }
-            } catch (err) {
-              console.error(`Failed to fetch translation for ${key}`, err);
+            const text = await getTranslation(translationSource, surahId, verse.numberInSurah);
+            if (text) {
+              newTranslations[key] = text;
+              hasNew = true;
             }
           }
-        }
+        });
         
         if (hasNew) {
           setInlineTranslations(newTranslations);
@@ -283,7 +285,17 @@ export default function QuranReader({
       
       fetchTranslationsForPage();
     }
-  }, [showInlineTranslation, playingAudio, verses, translationSource, selectedSurah]);
+  }, [showInlineTranslation, playingAudio?.surahId, playingAudio?.verseNumber, verses, translationSource, selectedSurah]);
+
+  // Preload next ayah translation if playing audio
+  useEffect(() => {
+    if (!playingAudio) return;
+    const nextVerse = playingAudio.verseNumber + 1;
+    const maxVerse = SURAH_VERSE_COUNTS[playingAudio.surahId - 1] || 0;
+    if (nextVerse <= maxVerse) {
+      getTranslation(translationSource, playingAudio.surahId, nextVerse).catch(console.error);
+    }
+  }, [playingAudio?.surahId, playingAudio?.verseNumber, translationSource]);
 
   // Auto-fill memorization end verse limit when active verse changes
   useEffect(() => {
@@ -382,12 +394,18 @@ export default function QuranReader({
     try {
       const surahId = activeVerse.surahId || selectedSurah;
       const verseKey = `${surahId}:${activeVerse.numberInSurah}`;
-      const [transRes, wordsRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/ayah/${verseKey}/${translationSource}`),
+      
+      const [transText, wordsRes] = await Promise.all([
+        getTranslation(translationSource, surahId, activeVerse.numberInSurah),
         fetch(`https://api.quran.com/api/v4/verses/by_key/${verseKey}?words=true&language=ar`)
       ]);
 
-      if (transRes.ok) setTranslationText((await transRes.json()).data?.text || "");
+      if (transText) {
+        setTranslationText(transText);
+      } else {
+        setTranslationText("Translation not available.");
+      }
+      
       if (wordsRes.ok) setWords((await wordsRes.json()).verse?.words || []);
 
     } catch (err) {
@@ -1116,13 +1134,13 @@ export default function QuranReader({
                       {playingAudio.text || verses.find(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)?.text || "..."}
                     </p>
                     
-                    {inlineTranslations[`${playingAudio.surahId}:${playingAudio.verseNumber}`] && (
-                      <div className="pt-4 border-t border-amber-200/50 dark:border-amber-800/50" dir="ltr">
-                        <p className="font-sans text-sm sm:text-base leading-relaxed text-amber-800 dark:text-amber-300 font-medium">
-                          {inlineTranslations[`${playingAudio.surahId}:${playingAudio.verseNumber}`]}
-                        </p>
-                      </div>
-                    )}
+                        {inlineTranslations[makeTranslationKey(translationSource, playingAudio.surahId, playingAudio.verseNumber)] && (
+                          <div className="pt-4 border-t border-amber-200/50 dark:border-amber-800/50" dir="ltr">
+                            <p className="font-sans text-sm sm:text-base leading-relaxed text-amber-800 dark:text-amber-300 font-medium">
+                              {inlineTranslations[makeTranslationKey(translationSource, playingAudio.surahId, playingAudio.verseNumber)]}
+                            </p>
+                          </div>
+                        )}
                   </div>
                 </div>
               )}
@@ -1241,10 +1259,10 @@ export default function QuranReader({
                         </p>
                         
                         {/* Inline English Translation */}
-                        {(showInlineTranslation || isPlaying) && inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`] && (
+                        {(showInlineTranslation || isPlaying) && inlineTranslations[makeTranslationKey(translationSource, ayah.surahId || selectedSurah, ayah.numberInSurah)] && (
                           <div className={`mt-4 pt-4 border-t text-left ${isPlaying ? 'border-amber-200 dark:border-amber-800/50' : 'border-slate-100 dark:border-slate-800'}`} dir="ltr">
                             <p className={`font-sans text-sm sm:text-base leading-relaxed ${isPlaying ? 'text-amber-800 dark:text-amber-300 font-medium' : 'text-slate-600 dark:text-slate-300'}`}>
-                              {inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`]}
+                              {inlineTranslations[makeTranslationKey(translationSource, ayah.surahId || selectedSurah, ayah.numberInSurah)]}
                             </p>
                           </div>
                         )}
