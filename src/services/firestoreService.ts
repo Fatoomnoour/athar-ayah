@@ -391,9 +391,16 @@ export async function resetUserJourney(userId: string) {
       deleteCollectionDocs(plansRef),
     ]);
 
-    // 2. Reset the readingProgress document to its default state
+    // 2. Reset the readingProgress document to its default state.
+    // Preserve the user's selected interface language when overwriting the document.
     const progressRef = doc(db, `users/${userId}/readingProgress`, "current");
+    const existingProgress = await getDoc(progressRef);
+    const existingLanguage = existingProgress.exists()
+      ? (existingProgress.data() as Partial<ReadingProgress>).language
+      : undefined;
+
     await setDoc(progressRef, {
+      ...(existingLanguage ? { language: existingLanguage } : {}),
       userId: userId,
       lastSurahId: 1,
       lastSurahName: "الفاتحة",
