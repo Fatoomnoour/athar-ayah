@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   MapPin,
+  Moon,
   Play,
   Plus,
   RefreshCw,
@@ -43,6 +44,8 @@ import { QuranNote } from "../types";
 import ProgressTab from "./ProgressTab";
 import { User, MemorizationPlan, ReadingProgress } from "../types";
 import confetti from "canvas-confetti";
+import { PrayerTimeSettings, DEFAULT_PRAYER_SETTINGS, PrayerTimesData } from "../data/prayerTimes";
+import { fetchPrayerTimesByCity, getNextPrayer, formatTimeRemaining } from "../services/prayerTimesService";
 
 interface ProgressPageProps {
   currentUser: User | null;
@@ -72,6 +75,43 @@ export default function ProgressPage({
   const [activeTab, setActiveTab] = useState<
     "journey" | "plans" | "achievements" | "favorites"
   >("journey");
+
+  // Home Cards State
+  const [prayerData, setPrayerData] = useState<PrayerTimesData | null>(() => {
+    const saved = localStorage.getItem("athar_prayer_data");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [prayerSettings] = useState<PrayerTimeSettings>(() => {
+    const saved = localStorage.getItem("athar_prayer_settings");
+    return saved ? JSON.parse(saved) : DEFAULT_PRAYER_SETTINGS;
+  });
+  const [timeRemaining, setTimeRemaining] = useState<string>("00:00:00");
+  const [nextPrayerName, setNextPrayerName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchTimes = async () => {
+      if (!prayerData || (Date.now() - prayerData.meta.lastUpdated > 12 * 60 * 60 * 1000)) {
+        const newData = await fetchPrayerTimesByCity(prayerSettings.city, prayerSettings.country, prayerSettings.method);
+        if (newData) {
+          setPrayerData(newData);
+          localStorage.setItem("athar_prayer_data", JSON.stringify(newData));
+        }
+      }
+    };
+    fetchTimes();
+  }, [prayerSettings]);
+
+  useEffect(() => {
+    if (!prayerData) return;
+    const updateTimer = () => {
+      const next = getNextPrayer(prayerData);
+      setTimeRemaining(formatTimeRemaining(next.diffMs));
+      setNextPrayerName(language === 'ar' ? next.nameAr : next.nameEn);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [prayerData, language]);
 
   useEffect(() => {
     if (currentUser) {
@@ -196,7 +236,7 @@ export default function ProgressPage({
     { level: 1, name: "بذرة النية", icon: "🌱", minPoints: 0, maxPoints: 99 },
     { level: 2, name: "نبتة الإقبال", icon: "🌿", minPoints: 100, maxPoints: 299 },
     { level: 3, name: "غرسة التعاهد", icon: "🪴", minPoints: 300, maxPoints: 699 },
-    { level: 4, name: "شجرة الثبات", icon: "🌳", minPoints: 700, maxPoints: 1499 }, 
+    { level: 4, name: "شجرة الثبات", icon: "🌳", minPoints: 700, maxPoints: 1499 },
     { level: 5, name: "أصلها ثابت وفرعها في السماء", icon: "🌴", minPoints: 1500, maxPoints: Infinity }
   ];
 
@@ -361,6 +401,67 @@ export default function ProgressPage({
 
       {activeTab === "journey" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+          {/* Islamic Modules Quick Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+            {/* Prayer Times Card */}
+            <div
+              onClick={() => onNavigateToTab("prayer-times")}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t("nextPrayer")}</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-100">{nextPrayerName || "..."}</p>
+                </div>
+              </div>
+              <div className="text-right" dir="ltr">
+                <p className="text-lg font-black tabular-nums text-emerald-600 dark:text-emerald-400">{timeRemaining}</p>
+              </div>
+            </div>
+
+            {/* Adhkar Card */}
+            <div
+              onClick={() => onNavigateToTab("adhkar")}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
+                  <Moon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t("adhkar")}</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-100">{language === 'ar' ? "أذكار الصباح والمساء" : "Daily Remembrance"}</p>
+                </div>
+              </div>
+              <div className="text-slate-300 group-hover:text-amber-500 transition-colors">
+                {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </div>
+            </div>
+
+            {/* Qibla Card */}
+            <div
+              onClick={() => onNavigateToTab("qibla")}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                  <Compass className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t("qibla")}</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-100">{language === 'ar' ? "بوصلة القبلة" : "Qibla Compass"}</p>
+                </div>
+              </div>
+              <div className="text-slate-300 group-hover:text-blue-500 transition-colors">
+                {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </div>
+            </div>
+          </div>
+
           {/* PHASE 1 SAFE: Static Hero Action Card */}
           <div className="bg-gradient-to-l from-emerald-50 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row items-center gap-6">
             <div className={`flex-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
@@ -676,7 +777,7 @@ export default function ProgressPage({
                 </div>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {dailyTasks.map(task => (
                 <div key={task.id} onClick={task.action} className={`p-4 rounded-xl space-y-3 cursor-pointer transition-all duration-200 ${task.isCompleted ? 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50' : 'bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 hover:border-emerald-300'}`}>

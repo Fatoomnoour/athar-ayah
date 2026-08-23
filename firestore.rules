@@ -30,6 +30,18 @@ service cloud.firestore {
         allow read, write: if isSignedIn()
           && request.auth.uid == userId;
       }
+      match /adhkarProgress/{itemId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId;
+      }
+      match /adhkarFavorites/{itemId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId;
+      }
+      match /prayerSettings/{docId} {
+        allow read, write: if isSignedIn()
+          && request.auth.uid == userId;
+      }
     }
     match /auditLogs/{logId} {
       allow read: if isSignedIn() && (request.auth.token.email == 'fatoomnoour@gmail.com' || request.auth.token.email == 'admin@athar-ayah.com');

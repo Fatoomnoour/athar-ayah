@@ -9,6 +9,10 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  Moon,
+  Compass,
+  Clock,
+  MoreHorizontal,
 } from "lucide-react";
 
 import Header from "./components/Header";
@@ -24,6 +28,9 @@ const ActiveRecitationTab = lazy(() => import("./components/ActiveRecitationTab"
 const GroupsTab = lazy(() => import("./components/groups/GroupsTab"));
 const ProgressPage = lazy(() => import("./components/ProgressPage"));
 const SettingsPage = lazy(() => import("./components/SettingsPage"));
+const AdhkarPage = lazy(() => import("./components/AdhkarPage"));
+const QiblaPage = lazy(() => import("./components/QiblaPage"));
+const PrayerTimesPage = lazy(() => import("./components/PrayerTimesPage"));
 const AuthPage = lazy(() => import("./components/AuthPage"));
 import Toast, { ToastType } from "./components/Toast";
 import OfflineIndicator from "./components/OfflineIndicator";
@@ -52,7 +59,10 @@ type AppTab =
   | "memorization"
   | "active-recitation"
   | "groups"
-  | "settings";
+  | "settings"
+  | "adhkar"
+  | "qibla"
+  | "prayer-times";
 
 function AppContent() {
   useFCM();
@@ -398,7 +408,9 @@ function AppContent() {
     }
   };
 
-  const tabs = [
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+
+  const mainTabs = [
     {
       id: "reader",
       name: t("reader"),
@@ -406,16 +418,31 @@ function AppContent() {
       desc: t("readerDesc"),
     },
     {
-      id: "notes",
-      name: t("notes"),
-      icon: BookMarked,
-      desc: t("notesDesc"),
-    },
-    {
       id: "progress",
       name: t("progress"),
       icon: LayoutDashboard,
       desc: t("progressDesc"),
+    },
+    {
+      id: "adhkar",
+      name: t("adhkar"),
+      icon: Moon,
+      desc: t("adhkarDesc"),
+    },
+    {
+      id: "prayer-times",
+      name: t("prayerTimes"),
+      icon: Clock,
+      desc: t("prayerTimesDesc"),
+    },
+  ] as const;
+
+  const moreTabs = [
+    {
+      id: "notes",
+      name: t("notes"),
+      icon: BookMarked,
+      desc: t("notesDesc"),
     },
     {
       id: "bookmarks",
@@ -442,12 +469,20 @@ function AppContent() {
       desc: t("groupsDesc"),
     },
     {
+      id: "qibla",
+      name: t("qibla"),
+      icon: Compass,
+      desc: t("qiblaDesc"),
+    },
+    {
       id: "settings",
       name: t("settings"),
       icon: Settings,
       desc: t("settingsDesc"),
     },
   ] as const;
+
+  const tabs = [...mainTabs, ...moreTabs] as const;
 
   if (!currentUser) {
     return (
@@ -661,7 +696,7 @@ function AppContent() {
         )}
 
         {!activeMemoPlan && !isReaderFocus && (
-          <div className="hidden md:flex bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs gap-1">
+          <div className="hidden md:flex flex-wrap bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -777,6 +812,24 @@ function AppContent() {
                     onRefreshStats={fetchStats}
                   />
                 )}
+
+                {activeTab === "adhkar" && (
+                  <AdhkarPage
+                    currentUser={currentUser}
+                    onShowToast={handleShowToast}
+                  />
+                )}
+
+                {activeTab === "qibla" && (
+                  <QiblaPage />
+                )}
+
+                {activeTab === "prayer-times" && (
+                  <PrayerTimesPage
+                    currentUser={currentUser}
+                    onShowToast={handleShowToast}
+                  />
+                )}
               </>
             </div>
           )}
@@ -785,30 +838,84 @@ function AppContent() {
       </main>
 
       {!activeMemoPlan && !isReaderFocus && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] px-3 z-45 flex items-center justify-around shadow-lg">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+        <>
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] px-3 z-45 flex items-center justify-around shadow-lg">
+            {mainTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1 cursor-pointer transition ${
-                  isActive
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-slate-400"
-                }`}
-                id={`mobile-tab-${tab.id}`}
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-1 cursor-pointer transition ${
+                    isActive
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-slate-400"
+                  }`}
+                  id={`mobile-tab-${tab.id}`}
+                >
+                  <Icon className="h-5.5 w-5.5" />
+                  <span className="text-[9px] font-bold leading-none">
+                    {tab.name.split(" ")[0]}
+                  </span>
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+              className={`flex flex-col items-center gap-1 cursor-pointer transition ${
+                isMoreMenuOpen || moreTabs.some(t => t.id === activeTab)
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-slate-400"
+              }`}
+            >
+              <MoreHorizontal className="h-5.5 w-5.5" />
+              <span className="text-[9px] font-bold leading-none">
+                {t("more")}
+              </span>
+            </button>
+          </nav>
+
+          {/* Mobile More Menu Overlay */}
+          {isMoreMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setIsMoreMenuOpen(false)}>
+              <div
+                className="absolute bottom-[calc(60px+env(safe-area-inset-bottom))] left-4 right-4 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 p-4 grid grid-cols-3 gap-4 animate-in slide-in-from-bottom-4"
+                onClick={e => e.stopPropagation()}
               >
-                <Icon className="h-5.5 w-5.5" />
-                <span className="text-[9px] font-bold leading-none">
-                  {tab.name.split(" ")[0]}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+                {moreTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition ${
+                        isActive
+                          ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                      }`}
+                    >
+                      <Icon className="h-6 w-6" />
+                      <span className="text-[10px] font-bold text-center leading-tight">
+                        {tab.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <footer className="w-full max-w-7xl mx-auto px-4 py-8 mt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-right">
