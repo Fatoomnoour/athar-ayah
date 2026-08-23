@@ -132,10 +132,13 @@ const buildHiddenWordIndexes = (
   return new Set(shuffledIndexes.slice(0, hiddenCount));
 };
 
+import { useLanguage } from "../i18n";
+
 export default function ActiveRecitationTab({
   currentUser,
   onShowToast,
 }: ActiveRecitationTabProps) {
+  const { language, t } = useLanguage();
   const [surahId, setSurahId] = useState<number>(1);
   const [startVerse, setStartVerse] = useState<number | string>(1);
   const [endVerse, setEndVerse] = useState<number | string>(7);

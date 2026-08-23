@@ -331,6 +331,15 @@ function AppContent() {
     }
   };
 
+  const handleJumpToVerse = (verseNumber: number) => {
+    if (!activeAudio) return;
+    setActiveAudio({
+      surahId: activeAudio.surahId,
+      verseNumber,
+      text: "", // Will be updated by QuranReader if visible, or handled by AudioPlayer
+    });
+  };
+
   const handleAudioPrev = () => {
     if (!activeAudio) return;
 
@@ -695,6 +704,7 @@ function AppContent() {
                     initialVerseNumber={readerInitialPosition?.verseNumber}
                     focusMode={focusMode}
                     setFocusMode={setFocusMode}
+                    playingAudio={activeAudio}
                   />
                 )}
 
@@ -826,6 +836,7 @@ function AppContent() {
           verseText={activeAudio.text}
           onNextVerse={handleAudioNext}
           onPrevVerse={handleAudioPrev}
+          onJumpToVerse={handleJumpToVerse}
           onShowToast={handleShowToast}
           onClose={() => setActiveAudio(null)}
         />

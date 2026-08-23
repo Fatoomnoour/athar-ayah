@@ -54,6 +54,8 @@ interface ProgressPageProps {
 }
 
 
+import { useLanguage } from "../i18n";
+
 export default function ProgressPage({
   currentUser,
   onStartMemorizeSession,
@@ -62,6 +64,7 @@ export default function ProgressPage({
   onNavigateToReader,
   onNavigateToTab,
 }: ProgressPageProps) {
+  const { language, t } = useLanguage();
   const [plans, setPlans] = useState<MemorizationPlan[]>([]);
   const [notes, setNotes] = useState<QuranNote[]>([]);
   const [progress, setProgress] = useState<ReadingProgress | null>(null);

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { SURAH_LIST, JUZ_LIST, JUZ_STARTING_POSITIONS, SURAH_VERSE_COUNTS, getAbsoluteAyah } from "../utils/quranUtils";
 import { User, Bookmark as BookmarkType, QuranNote, MemorizationPlan } from "../types";
+import { useLanguage } from "../i18n";
 import { 
   createNote, 
   getUserNotes, 
@@ -25,6 +26,7 @@ interface QuranReaderProps {
   onShowToast: (msg: string, type: "success" | "error" | "info") => void;
   onRefreshStats: () => void;
   onPlayAyah: (surahId: number, verseNumber: number, text: string) => void;
+  playingAudio?: { surahId: number; verseNumber: number; text: string } | null;
   initialSurahId?: number;
   initialVerseNumber?: number;
   focusMode?: boolean;
@@ -36,6 +38,7 @@ export default function QuranReader({
   onShowToast, 
   onRefreshStats,
   onPlayAyah,
+  playingAudio,
   initialSurahId,
   initialVerseNumber,
   focusMode: propsFocusMode,
@@ -43,6 +46,8 @@ export default function QuranReader({
 }: QuranReaderProps) {
   
   
+  const { language, t } = useLanguage();
+
   // Navigation State
 
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
@@ -131,9 +136,13 @@ export default function QuranReader({
   const [isLoadingTafsir, setIsLoadingTafsir] = useState<boolean>(false);
 
   // English Translation State
-  const [translationSource, setTranslationSource] = useState<string>("en.sahih");
+  const [translationSource, setTranslationSource] = useState<string>(() => {
+    return localStorage.getItem("athar_translation_source") || "en.sahih";
+  });
   const [translationText, setTranslationText] = useState<string>("");
   const [isLoadingTranslation, setIsLoadingTranslation] = useState<boolean>(false);
+  const [showInlineTranslation, setShowInlineTranslation] = useState<boolean>(false);
+  const [inlineTranslations, setInlineTranslations] = useState<Record<string, string>>({});
 
   // Word meanings
   const [words, setWords] = useState<any[]>([]);
@@ -239,6 +248,42 @@ export default function QuranReader({
       checkBookmarkStatus();
     }
   }, [activeVerse, detailTab, tafsirSource, translationSource]);
+
+  useEffect(() => {
+    if ((showInlineTranslation || playingAudio) && verses.length > 0) {
+      const fetchTranslationsForPage = async () => {
+        const newTranslations = { ...inlineTranslations };
+        let hasNew = false;
+        
+        // If playing audio, only fetch the active playing ayah to save requests, otherwise fetch visible verses
+        const versesToFetch = playingAudio && !showInlineTranslation 
+          ? verses.filter(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)
+          : verses;
+
+        for (const verse of versesToFetch) {
+          const key = `${verse.surahId || selectedSurah}:${verse.numberInSurah}`;
+          if (!newTranslations[key]) {
+            try {
+              const res = await fetch(`https://api.alquran.cloud/v1/ayah/${key}/${translationSource}`);
+              if (res.ok) {
+                const data = await res.json();
+                newTranslations[key] = data.data?.text || "";
+                hasNew = true;
+              }
+            } catch (err) {
+              console.error(`Failed to fetch translation for ${key}`, err);
+            }
+          }
+        }
+        
+        if (hasNew) {
+          setInlineTranslations(newTranslations);
+        }
+      };
+      
+      fetchTranslationsForPage();
+    }
+  }, [showInlineTranslation, playingAudio, verses, translationSource, selectedSurah]);
 
   // Auto-fill memorization end verse limit when active verse changes
   useEffect(() => {
@@ -691,11 +736,45 @@ export default function QuranReader({
                 }
               }}
               className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer"
-              title="تلاوة صوتية للصفحة أو السورة الحالية"
+              title={language === "ar" ? "تلاوة صوتية للصفحة أو السورة الحالية" : "Play audio for current page or surah"}
             >
               <Play className="h-4 w-4" />
-              <span>تلاوة صوتية</span>
+              <span>{language === "ar" ? "تلاوة صوتية" : "Play Audio"}</span>
             </button>
+
+            {/* Translation Toggle Button */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setShowInlineTranslation(!showInlineTranslation)}
+                className={`px-3.5 py-1.5 font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer border ${
+                  showInlineTranslation 
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" 
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                } ${language === "ar" ? "rounded-l-none border-l-0" : "rounded-r-none border-r-0"}`}
+                title={language === "ar" ? "إظهار/إخفاء الترجمة الإنجليزية" : "Toggle English Translation"}
+              >
+                <Type className="h-4 w-4" />
+                <span>{language === "ar" ? "الترجمة" : "Translation"}</span>
+              </button>
+              
+              <select
+                value={translationSource}
+                onChange={(e) => {
+                  const newSource = e.target.value;
+                  setTranslationSource(newSource);
+                  localStorage.setItem("athar_translation_source", newSource);
+                  setInlineTranslations({}); // Clear cache to fetch new translation
+                }}
+                className={`px-2 py-1.5 h-full bg-slate-50 dark:bg-slate-800 border text-[10px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer ${
+                  showInlineTranslation ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20" : "border-slate-200 dark:border-slate-700"
+                } ${language === "ar" ? "rounded-l-lg" : "rounded-r-lg"}`}
+                title={language === "ar" ? "مصدر الترجمة" : "Translation Source"}
+              >
+                <option value="en.sahih">Sahih Intl</option>
+                <option value="en.pickthall">Pickthall</option>
+                <option value="en.yusufali">Yusuf Ali</option>
+              </select>
+            </div>
 
             {/* Selection mode Tabs */}
             <div className="flex border rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-xs">
@@ -1018,6 +1097,36 @@ export default function QuranReader({
           ) : (
             <div className="flex-1 flex flex-col justify-between">
               
+              {/* NOW LISTENING PANEL */}
+              {playingAudio && (
+                <div className="max-w-5xl mx-auto w-full mb-6">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 sm:p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                        {language === "ar" ? "جاري الاستماع" : "Now Listening"}
+                      </span>
+                    </div>
+                    
+                    <p 
+                      className="font-quran text-right select-all font-semibold leading-relaxed mb-4 text-amber-900 dark:text-amber-100"
+                      style={{ fontSize: `${fontSize}px` }}
+                      dir="rtl"
+                    >
+                      {playingAudio.text || verses.find(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)?.text || "..."}
+                    </p>
+                    
+                    {inlineTranslations[`${playingAudio.surahId}:${playingAudio.verseNumber}`] && (
+                      <div className="pt-4 border-t border-amber-200/50 dark:border-amber-800/50" dir="ltr">
+                        <p className="font-sans text-sm sm:text-base leading-relaxed text-amber-800 dark:text-amber-300 font-medium">
+                          {inlineTranslations[`${playingAudio.surahId}:${playingAudio.verseNumber}`]}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* RENDER VIEW ACCORDING TO SELECTED READER MODE */}
 
               {/* A. MUSHAF MODE (Traditional continuous text flow - Centered and comfortable to read) */}
@@ -1029,6 +1138,7 @@ export default function QuranReader({
                 >
                   {verses.map((ayah) => {
                     const isSelected = activeVerse?.numberInSurah === ayah.numberInSurah && activeVerse?.surahId === ayah.surahId;
+                    const isPlaying = playingAudio?.surahId === (ayah.surahId || selectedSurah) && playingAudio?.verseNumber === ayah.numberInSurah;
                     return (
                       <span 
                         key={`${ayah.surahId}-${ayah.number}`}
@@ -1038,7 +1148,9 @@ export default function QuranReader({
                           setIsDetailsOpen(true);
                         }}
                         className={`verse-element font-quran cursor-pointer rounded-xl px-2 py-1 inline-block transition-all duration-200 ${
-                          isSelected 
+                          isPlaying 
+                            ? "bg-amber-500/20 dark:bg-amber-500/30 text-amber-800 dark:text-amber-200 font-bold ring-2 ring-amber-500/50" 
+                            : isSelected 
                             ? "bg-emerald-500/20 dark:bg-emerald-500/35 text-emerald-800 dark:text-emerald-200 font-bold scale-102 ring-2 ring-emerald-500/30" 
                             : "hover:bg-emerald-500/10"
                         }`}
@@ -1047,6 +1159,11 @@ export default function QuranReader({
                         <span className="inline-block text-emerald-600 dark:text-emerald-400 font-serif text-[0.85em] font-black mr-2 ml-1.5 select-none hover:scale-110 transition duration-150">
                           ﴿{ayah.numberInSurah}﴾
                         </span>
+                        {(showInlineTranslation || isPlaying) && inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`] && (
+                          <span className={`block mt-2 mb-3 font-sans text-sm md:text-base text-left font-normal ${isPlaying ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-slate-500 dark:text-slate-400'}`} dir="ltr">
+                            {inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`]}
+                          </span>
+                        )}
                       </span>
                     );
                   })}
@@ -1058,6 +1175,7 @@ export default function QuranReader({
                 <div className="space-y-4 max-w-5xl mx-auto">
                   {verses.map((ayah) => {
                     const isSelected = activeVerse?.numberInSurah === ayah.numberInSurah && activeVerse?.surahId === ayah.surahId;
+                    const isPlaying = playingAudio?.surahId === (ayah.surahId || selectedSurah) && playingAudio?.verseNumber === ayah.numberInSurah;
                     return (
                       <div
                         key={`${ayah.surahId}-${ayah.number}`}
@@ -1066,7 +1184,9 @@ export default function QuranReader({
                           setActiveVerse(ayah);
                         }}
                         className={`verse-element p-5 sm:p-6 rounded-3xl border transition-all duration-300 cursor-pointer ${
-                          isSelected 
+                          isPlaying 
+                            ? "bg-amber-50 dark:bg-amber-900/10 border-amber-500/50 shadow-md ring-1 ring-amber-500/30" 
+                            : isSelected 
                             ? "bg-emerald-500/5 border-emerald-500/40 dark:border-emerald-600/50 shadow-sm" 
                             : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-850 hover:border-slate-200"
                         }`}
@@ -1119,6 +1239,15 @@ export default function QuranReader({
                         >
                           {ayah.text}
                         </p>
+                        
+                        {/* Inline English Translation */}
+                        {(showInlineTranslation || isPlaying) && inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`] && (
+                          <div className={`mt-4 pt-4 border-t text-left ${isPlaying ? 'border-amber-200 dark:border-amber-800/50' : 'border-slate-100 dark:border-slate-800'}`} dir="ltr">
+                            <p className={`font-sans text-sm sm:text-base leading-relaxed ${isPlaying ? 'text-amber-800 dark:text-amber-300 font-medium' : 'text-slate-600 dark:text-slate-300'}`}>
+                              {inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`]}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1403,7 +1532,12 @@ export default function QuranReader({
                       <span className="text-[10px] font-bold text-slate-400">Source:</span>
                       <select
                         value={translationSource}
-                        onChange={(e) => setTranslationSource(e.target.value)}
+                        onChange={(e) => {
+                          const newSource = e.target.value;
+                          setTranslationSource(newSource);
+                          localStorage.setItem("athar_translation_source", newSource);
+                          setInlineTranslations({});
+                        }}
                         className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
                       >
                         <option value="en.sahih">Sahih Intl.</option>

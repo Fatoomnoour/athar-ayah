@@ -281,7 +281,7 @@ export default function GroupPage({
     const newComments = reflection.comments?.filter(c => c.id !== commentId) || [];
     
     try {
-      await updateGroupReflection(localGroup.id, reflectionId, { comments: newComments });
+      await updateGroupReflection(localGroup.id, reflectionId, { comments: newComments } as any);
       setReflections((prev) => prev.map((r) => r.id === reflectionId ? { ...r, comments: newComments } : r));
       onShowToast("تم حذف التعليق", "success");
     } catch (err) {
@@ -908,14 +908,22 @@ export default function GroupPage({
                       اختر السورة
                     </label>
 
-                    <SurahSearchSelect
+                    <select
                       value={weeklySurahId}
-                      onChange={(surahId) => {
+                      onChange={(e) => {
+                        const surahId = Number(e.target.value);
                         setWeeklySurahId(surahId);
                         setWeeklyStartVerse(1);
                         setWeeklyEndVerse(getMaxVerseForSurah(surahId));
                       }}
-                    />
+                      className="w-full px-3 py-2 border rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                    >
+                      {SURAH_LIST.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.id}. {s.name}
+                        </option>
+                      ))}
+                    </select>
 
                     <div className="flex items-center gap-2">
                       <input
