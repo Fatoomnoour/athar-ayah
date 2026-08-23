@@ -331,6 +331,11 @@ function AppContent() {
     }
   };
 
+  const handleUpdatePlayingAudioText = (text: string) => {
+    if (!activeAudio) return;
+    setActiveAudio(prev => prev ? { ...prev, text } : null);
+  };
+
   const handleJumpToVerse = (verseNumber: number) => {
     if (!activeAudio) return;
     setActiveAudio({
@@ -700,6 +705,7 @@ function AppContent() {
                     onShowToast={handleShowToast}
                     onRefreshStats={fetchStats}
                     onPlayAyah={handlePlayAyah}
+                    onUpdatePlayingAudioText={handleUpdatePlayingAudioText}
                     initialSurahId={readerInitialPosition?.surahId}
                     initialVerseNumber={readerInitialPosition?.verseNumber}
                     focusMode={focusMode}

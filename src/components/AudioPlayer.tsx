@@ -45,7 +45,7 @@ export default function AudioPlayer({
   onShowToast,
   repeatMode = "one",
   rangeStart = 1,
-  rangeEnd = 1,
+  rangeEnd,
   onJumpToVerse
 }: AudioPlayerProps) {
   // Config state
@@ -77,7 +77,7 @@ export default function AudioPlayer({
   // Range and mode states local overrides
   const [localRepeatMode, setLocalRepeatMode] = useState<"one" | "range">(repeatMode);
   const [localRangeStart, setLocalRangeStart] = useState<number>(rangeStart);
-  const [localRangeEnd, setLocalRangeEnd] = useState<number>(rangeEnd);
+  const [localRangeEnd, setLocalRangeEnd] = useState<number>(rangeEnd ?? (SURAH_LIST.find(s => s.id === surahId)?.verses || 1));
   const [isCustomRepeat, setIsCustomRepeat] = useState<boolean>(false);
 
   // Player state
@@ -97,9 +97,17 @@ export default function AudioPlayer({
   // Sync range states when props change
   useEffect(() => {
     setLocalRepeatMode(repeatMode);
-    setLocalRangeStart(rangeStart);
-    setLocalRangeEnd(rangeEnd);
-  }, [repeatMode, rangeStart, rangeEnd]);
+    
+    // When in "one" mode, we want continuous playback across surahs
+    // so we don't constrain the range end to the current surah
+    if (repeatMode === "one") {
+      setLocalRangeStart(rangeStart);
+      setLocalRangeEnd(rangeEnd ?? (SURAH_LIST.find(s => s.id === surahId)?.verses || 1));
+    } else {
+      setLocalRangeStart(rangeStart);
+      setLocalRangeEnd(rangeEnd ?? (SURAH_LIST.find(s => s.id === surahId)?.verses || 1));
+    }
+  }, [repeatMode, rangeStart, rangeEnd, surahId]);
 
   // Compute Audio Source URL using absolute ayah number
   const absoluteAyah = getAbsoluteAyah(surahId, verseNumber);

@@ -31,6 +31,7 @@ interface QuranReaderProps {
   onShowToast: (msg: string, type: "success" | "error" | "info") => void;
   onRefreshStats: () => void;
   onPlayAyah: (surahId: number, verseNumber: number, text: string) => void;
+  onUpdatePlayingAudioText?: (text: string) => void;
   playingAudio?: { surahId: number; verseNumber: number; text: string } | null;
   initialSurahId?: number;
   initialVerseNumber?: number;
@@ -43,6 +44,7 @@ export default function QuranReader({
   onShowToast, 
   onRefreshStats,
   onPlayAyah,
+  onUpdatePlayingAudioText,
   playingAudio,
   initialSurahId,
   initialVerseNumber,
@@ -286,6 +288,39 @@ export default function QuranReader({
       fetchTranslationsForPage();
     }
   }, [showInlineTranslation, playingAudio?.surahId, playingAudio?.verseNumber, verses, translationSource, selectedSurah]);
+
+  // Sync selected surah and verse with playing audio
+  useEffect(() => {
+    if (playingAudio) {
+      if (playingAudio.surahId !== selectedSurah) {
+        setSelectedSurah(playingAudio.surahId);
+        setSelectionType("surah");
+        
+        // Auto-scroll to top when surah changes
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      // Keep selectedVerse in sync for highlight/auto-scroll logic if implemented
+      if (playingAudio.verseNumber !== selectedVerse) {
+        setSelectedVerse(playingAudio.verseNumber);
+      }
+      
+      // Keep activeVerse in sync to highlight properly and fetch tafsir if drawer is open
+      if (verses.length > 0) {
+        const matchingVerse = verses.find(v => v.numberInSurah === playingAudio.verseNumber && (v.surahId || selectedSurah) === playingAudio.surahId);
+        if (matchingVerse) {
+          if (!activeVerse || activeVerse.numberInSurah !== matchingVerse.numberInSurah || activeVerse.surahId !== matchingVerse.surahId) {
+            setActiveVerse(matchingVerse);
+          }
+          
+          // If the audio player doesn't have the text (happens on auto-advance), provide it
+          if (!playingAudio.text && onUpdatePlayingAudioText) {
+            onUpdatePlayingAudioText(matchingVerse.text);
+          }
+        }
+      }
+    }
+  }, [playingAudio?.surahId, playingAudio?.verseNumber, verses]);
 
   // Preload next ayah translation if playing audio
   useEffect(() => {
@@ -1131,7 +1166,7 @@ export default function QuranReader({
                       style={{ fontSize: `${fontSize}px` }}
                       dir="rtl"
                     >
-                      {playingAudio.text || verses.find(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)?.text || "..."}
+                      {playingAudio.text || verses.find(v => (v.surahId || selectedSurah) === playingAudio.surahId && v.numberInSurah === playingAudio.verseNumber)?.text || (playingAudio.surahId !== selectedSurah ? "جاري تحميل الآية..." : "...")}
                     </p>
                     
                         {inlineTranslations[makeTranslationKey(translationSource, playingAudio.surahId, playingAudio.verseNumber)] && (
@@ -1177,9 +1212,9 @@ export default function QuranReader({
                         <span className="inline-block text-emerald-600 dark:text-emerald-400 font-serif text-[0.85em] font-black mr-2 ml-1.5 select-none hover:scale-110 transition duration-150">
                           ﴿{ayah.numberInSurah}﴾
                         </span>
-                        {(showInlineTranslation || isPlaying) && inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`] && (
+                        {(showInlineTranslation || isPlaying) && inlineTranslations[makeTranslationKey(translationSource, ayah.surahId || selectedSurah, ayah.numberInSurah)] && (
                           <span className={`block mt-2 mb-3 font-sans text-sm md:text-base text-left font-normal ${isPlaying ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-slate-500 dark:text-slate-400'}`} dir="ltr">
-                            {inlineTranslations[`${ayah.surahId || selectedSurah}:${ayah.numberInSurah}`]}
+                            {inlineTranslations[makeTranslationKey(translationSource, ayah.surahId || selectedSurah, ayah.numberInSurah)]}
                           </span>
                         )}
                       </span>
