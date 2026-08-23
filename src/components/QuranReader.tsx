@@ -884,26 +884,26 @@ export default function QuranReader({
               <button
                 onClick={() => setReaderMode("mushaf")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1.5 font-bold rounded-md transition ${readerMode === "mushaf" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
-                title="وضع المصحف (متواصل)"
+                title={language === "ar" ? "وضع المصحف (متواصل)" : "Mushaf mode"}
               >
                 <BookOpen className="h-4 w-4" />
-                <span>المصحف</span>
+                <span>{language === "ar" ? "المصحف" : "Mushaf"}</span>
               </button>
               <button
                 onClick={() => setReaderMode("verse")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1.5 font-bold rounded-md transition ${readerMode === "verse" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
-                title="وضع الآيات (قائمة مجزأة)"
+                title={language === "ar" ? "وضع الآيات (قائمة مجزأة)" : "Verse mode"}
               >
                 <List className="h-4 w-4" />
-                <span>الآيات</span>
+                <span>{language === "ar" ? "الآيات" : "Verses"}</span>
               </button>
               <button
                 onClick={() => setReaderMode("memorize")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1.5 font-bold rounded-md transition ${readerMode === "memorize" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
-                title="وضع التسميع والحفظ (إخفاء الكلمات)"
+                title={language === "ar" ? "وضع التسميع والحفظ (إخفاء الكلمات)" : "Memorization mode"}
               >
                 <Award className="h-4 w-4" />
-                <span>التسميع النشط</span>
+                <span>{t("activeRecitationTitle")}</span>
               </button>
             </div>
 
@@ -932,10 +932,10 @@ export default function QuranReader({
                 <button
                   onClick={() => setIsSurahDrawerOpen(true)}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="فهرس السور"
+                  title={language === "ar" ? "فهرس السور" : "Surah Index"}
                 >
                   <BookOpen className="h-3.5 w-3.5" />
-                  <span>فهرس السور</span>
+                  <span>{language === "ar" ? "فهرس السور" : "Index"}</span>
                 </button>
 
                 {/* Audio Playback Button - Focus mode compliant */}
@@ -1276,10 +1276,10 @@ export default function QuranReader({
             <div className="p-3 border-b flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
               <div>
                 <h4 className="text-sm font-black text-slate-900 dark:text-slate-200">
-                  خيارات الآية الكريمة
+                  {language === "ar" ? "خيارات الآية الكريمة" : "Verse Options"}
                 </h4>
                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
-                  {activeVerse.surahName || SURAH_LIST[(activeVerse.surahId || selectedSurah) - 1]?.name} • آية {activeVerse.numberInSurah}
+                  {activeVerse.surahName || SURAH_LIST[(activeVerse.surahId || selectedSurah) - 1]?.name} • {language === "ar" ? "آية" : "Verse"} {activeVerse.numberInSurah}
                 </span>
               </div>
               <button
@@ -1298,7 +1298,7 @@ export default function QuranReader({
                 title="تشغيل الآية"
               >
                 <Play className="h-4.5 w-4.5" />
-                <span className="text-[8px] font-bold">تشغيل</span>
+                <span className="text-[8px] font-bold">{language === "ar" ? "تشغيل" : "Play"}</span>
               </button>
               <button
                 onClick={() => handlePlaceReadingBookmark(activeVerse)}
@@ -1306,7 +1306,7 @@ export default function QuranReader({
                 title="تثبيت علامة فاصل القراءة"
               >
                 <Bookmark className="h-4.5 w-4.5" />
-                <span className="text-[8px] font-bold">فاصل</span>
+                <span className="text-[8px] font-bold">{language === "ar" ? "فاصل" : "Bookmark"}</span>
               </button>
               <button
                 onClick={handleToggleBookmark}
@@ -1314,7 +1314,7 @@ export default function QuranReader({
                 title="إضافة إلى المفضلة"
               >
                 <Heart className={`h-4.5 w-4.5 ${isBookmarked ? "fill-amber-500" : ""}`} />
-                <span className="text-[8px] font-bold">المفضلة</span>
+                <span className="text-[8px] font-bold">{language === "ar" ? "المفضلة" : "Favorite"}</span>
               </button>
               <button
                 onClick={() => handleShareVerse(activeVerse)}
@@ -1322,7 +1322,7 @@ export default function QuranReader({
                 title="مشاركة الآية"
               >
                 <Share2 className="h-4.5 w-4.5" />
-                <span className="text-[8px] font-bold">مشاركة</span>
+                <span className="text-[8px] font-bold">{language === "ar" ? "مشاركة" : "Share"}</span>
               </button>
             </div>
 
@@ -1332,7 +1332,7 @@ export default function QuranReader({
                 onClick={() => setDetailTab("tafsir")}
                 className={`flex-1 py-2 rounded-md text-center transition cursor-pointer ${detailTab === "tafsir" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500"}`}
               >
-                التفسير
+                {t("tafsir")}
               </button>
               <button
                 onClick={() => setDetailTab("words")}
@@ -1344,13 +1344,13 @@ export default function QuranReader({
                 onClick={() => setDetailTab("reflections")}
                 className={`flex-1 py-2 rounded-md text-center transition cursor-pointer ${detailTab === "reflections" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500"}`}
               >
-                تدبري
+                {language === "ar" ? "تدبري" : "Reflect"}
               </button>
               <button
                 onClick={() => setDetailTab("memorization")}
                 className={`flex-1 py-2 rounded-md text-center transition cursor-pointer ${detailTab === "memorization" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs" : "text-slate-500"}`}
               >
-                الحفظ
+                {t("memorize")}
               </button>
             </div>
 
