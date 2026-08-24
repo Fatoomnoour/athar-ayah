@@ -1,5 +1,5 @@
 import confetti from "canvas-confetti";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { User } from "../types";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../utils/quranUtils";
 import {
@@ -9,6 +9,8 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
+  Mic,
+  MicOff,
   SkipBack,
   Target,
   ThumbsDown,
@@ -38,6 +40,38 @@ interface SessionSummary {
   retryCount: number;
   surahName: string;
 }
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
+  const browserWindow = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+
+  return browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition || null;
+};
+
+const normalizeArabicSpeech = (value: string) => value
+  .normalize("NFKC")
+  .replace(/[\u064B-\u065F\u0670]/g, "")
+  .replace(/[إأآٱ]/g, "ا")
+  .replace(/ى/g, "ي")
+  .replace(/ة/g, "ه")
+  .replace(/[^\u0621-\u063A\u0641-\u064A\s]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
 
 async function getSurahVerses(surahId: number): Promise<QuranVerse[]> {
   const response = await fetch(
@@ -165,6 +199,11 @@ export default function ActiveRecitationTab({
   const [retryCount, setRetryCount] = useState(0);
   const [sessionSummary, setSessionSummary] =
     useState<SessionSummary | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechTranscript, setSpeechTranscript] = useState("");
+  const [speechScore, setSpeechScore] = useState<number | null>(null);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const selectedSurahInfo = SURAH_LIST.find((surah) => surah.id === surahId);
   const selectedSurahName = selectedSurahInfo?.name || "الفاتحة";
@@ -188,6 +227,23 @@ export default function ActiveRecitationTab({
   const currentLevelConfig = getLevelConfig(hideLevel, language);
 
   useEffect(() => {
+    setSpeechSupported(Boolean(getSpeechRecognitionConstructor()));
+    return () => {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    setSpeechTranscript("");
+    setSpeechScore(null);
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+  }, [currentVerse?.number]);
+
+  useEffect(() => {
     const newMax = SURAH_LIST.find(s => s.id === surahId)?.verses || SURAH_VERSE_COUNTS[surahId - 1] || 7;
     setStartVerse(1);
     setEndVerse(newMax);
@@ -199,6 +255,75 @@ export default function ActiveRecitationTab({
     return Math.max(min, Math.min(max, num));
   };
 
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+  };
+
+  const startListening = () => {
+    if (!currentVerse) return;
+    const Recognition = getSpeechRecognitionConstructor();
+
+    if (!Recognition) {
+      onShowToast(
+        language === "ar"
+          ? "التعرف الصوتي غير متاح في هذا المتصفح. يمكنك التسميع ذاتياً."
+          : "Speech recognition is not available in this browser. You can recite self-guided.",
+        "info"
+      );
+      return;
+    }
+
+    stopListening();
+    const recognition = new Recognition();
+    recognition.lang = "ar-SA";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      const transcript = String(event.results[0]?.[0]?.transcript || "");
+      const expectedWords = normalizeArabicSpeech(currentVerse.text).split(" ").filter(Boolean);
+      const spokenWords = normalizeArabicSpeech(transcript).split(" ").filter(Boolean);
+      const spokenSet = new Set(spokenWords);
+      const matchedWords = expectedWords.filter((word) => spokenSet.has(word)).length;
+      const score = expectedWords.length > 0
+        ? Math.round((matchedWords / expectedWords.length) * 100)
+        : 0;
+
+      setSpeechTranscript(transcript);
+      setSpeechScore(score);
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      const errorMessage = event.error === "not-allowed"
+        ? (language === "ar" ? "تم رفض صلاحية الميكروفون." : "Microphone permission was denied.")
+        : (language === "ar" ? "تعذر التقاط الصوت، حاول مرة أخرى." : "Could not capture speech. Please try again.");
+      onShowToast(errorMessage, "error");
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setIsListening(true);
+      setSpeechTranscript("");
+      setSpeechScore(null);
+    } catch {
+      recognitionRef.current = null;
+      setIsListening(false);
+      onShowToast(
+        language === "ar" ? "تعذر بدء الميكروفون." : "Unable to start the microphone.",
+        "error"
+      );
+    }
+  };
+
   const resetCurrentAyahState = () => {
     setManuallyRevealedWords(new Set());
     setHasRevealedAyah(false);
@@ -206,6 +331,7 @@ export default function ActiveRecitationTab({
   };
 
   const resetSession = () => {
+    stopListening();
     setIsSessionActive(false);
     setIsStartingSession(false);
     setSessionSummary(null);
@@ -389,6 +515,7 @@ export default function ActiveRecitationTab({
   };
 
   const handleEndSession = (completed = false) => {
+    stopListening();
     const finalCompletedAyahs = completed
       ? completedAyahNumbers.size
       : completedAyahNumbers.size;
@@ -444,6 +571,46 @@ export default function ActiveRecitationTab({
               <X className="h-4 w-4" />
             </button>
           </div>
+        </div>
+
+        <div className="mb-5 p-4 rounded-xl border border-blue-100 bg-blue-50/70 dark:bg-blue-950/20 dark:border-blue-900/40" dir={direction}>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-blue-700 dark:text-blue-400">
+                {language === "ar" ? "استمع لتسميعك (اختياري)" : "Listen to your recitation (optional)"}
+              </p>
+              <p className="text-xs text-blue-600/80 dark:text-blue-300/80 mt-1">
+                {language === "ar"
+                  ? "يُستخدم الميكروفون أثناء الجلسة فقط ولا يتم حفظ التسجيل."
+                  : "The microphone is used during this session only; no recording is saved."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              disabled={!speechSupported && !isListening}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition text-sm"
+              title={language === "ar" ? "السماح بالميكروفون عند بدء التسميع" : "Allow microphone when starting recitation"}
+            >
+              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isListening
+                ? (language === "ar" ? "إيقاف الاستماع" : "Stop listening")
+                : (language === "ar" ? "بدء الاستماع" : "Start listening")}
+            </button>
+          </div>
+          {!speechSupported && (
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+              {language === "ar" ? "هذا المتصفح لا يدعم التعرف الصوتي؛ أكمل التسميع اليدوي." : "Speech recognition is unavailable; continue with self-guided recitation."}
+            </p>
+          )}
+          {speechTranscript && (
+            <div className="mt-3 text-xs text-slate-600 dark:text-slate-300">
+              <span className="font-bold">{language === "ar" ? "النص الملتقط:" : "Captured text:"}</span> {speechTranscript}
+              {speechScore !== null && (
+                <span className="font-bold text-blue-700 dark:text-blue-400"> — {language === "ar" ? `تطابق تقريبي ${speechScore}%` : `Approximate match ${speechScore}%`}</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
