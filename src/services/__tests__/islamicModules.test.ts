@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ADHKAR_LIST } from "../../data/adhkar";
+import { ADHKAR_CATEGORY_MINIMUM, ADHKAR_LIST, AdhkarCategory } from "../../data/adhkar";
 import { parseTimeString, getNextPrayer, formatTimeRemaining } from "../prayerTimesService";
 
 describe("Islamic Modules Tests", () => {
@@ -15,6 +15,33 @@ describe("Islamic Modules Tests", () => {
         expect(item.sourceType).toMatch(/^(quran|hadith)$/);
         expect(item.sourceTitle).toBeDefined();
         expect(item.reference).toBeDefined();
+      });
+    });
+
+    it("should cover every category with multiple items", () => {
+      const categories: AdhkarCategory[] = [
+        "morning",
+        "evening",
+        "post_prayer",
+        "sleep",
+        "waking",
+        "home",
+        "travel",
+        "forgiveness",
+        "ruqyah",
+        "quranic",
+      ];
+
+      categories.forEach((category) => {
+        const items = ADHKAR_LIST.filter((item) => item.category === category);
+        expect(items.length, `${category} should contain a complete set`).toBeGreaterThanOrEqual(ADHKAR_CATEGORY_MINIMUM);
+      });
+    });
+
+    it("should keep canonical text complete and sourced", () => {
+      ADHKAR_LIST.forEach((item) => {
+        expect(item.arabicText).not.toContain("...");
+        expect(item.sourceUrl).toMatch(/^https:\/\//);
       });
     });
 
