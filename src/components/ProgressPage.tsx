@@ -136,7 +136,7 @@ export default function ProgressPage({
       setProgress(progressData || null);
     } catch (err) {
       console.error("Error loading progress page data:", err);
-      onShowToast("حدث خطأ أثناء جلب البيانات", "error");
+      onShowToast(language === "ar" ? "حدث خطأ أثناء جلب البيانات" : "Unable to load progress data", "error");
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +161,7 @@ export default function ProgressPage({
         .catch(console.error);
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText);
-      onShowToast("تم نسخ رابط التطبيق لمشاركته!", "success");
+      onShowToast(language === "ar" ? "تم نسخ رابط التطبيق لمشاركته!" : "App link copied for sharing!", "success");
     }
 
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -233,11 +233,11 @@ export default function ProgressPage({
   dailyScore = Math.min(dailyScore, DAILY_SCORE_TARGET);
 
   const treeStages = [
-    { level: 1, name: "بذرة النية", icon: "🌱", minPoints: 0, maxPoints: 99 },
-    { level: 2, name: "نبتة الإقبال", icon: "🌿", minPoints: 100, maxPoints: 299 },
-    { level: 3, name: "غرسة التعاهد", icon: "🪴", minPoints: 300, maxPoints: 699 },
-    { level: 4, name: "شجرة الثبات", icon: "🌳", minPoints: 700, maxPoints: 1499 },
-    { level: 5, name: "أصلها ثابت وفرعها في السماء", icon: "🌴", minPoints: 1500, maxPoints: Infinity }
+    { level: 1, nameAr: "بذرة النية", nameEn: "Seed of Intention", icon: "🌱", minPoints: 0, maxPoints: 99 },
+    { level: 2, nameAr: "نبتة الإقبال", nameEn: "Growing Sprout", icon: "🌿", minPoints: 100, maxPoints: 299 },
+    { level: 3, nameAr: "غرسة التعاهد", nameEn: "Steady Plant", icon: "🪴", minPoints: 300, maxPoints: 699 },
+    { level: 4, nameAr: "شجرة الثبات", nameEn: "Tree of Steadfastness", icon: "🌳", minPoints: 700, maxPoints: 1499 },
+    { level: 5, nameAr: "أصلها ثابت وفرعها في السماء", nameEn: "Rooted and Reaching the Sky", icon: "🌴", minPoints: 1500, maxPoints: Infinity }
   ];
 
   const currentTreeStage = treeStages.slice().reverse().find(s => points >= s.minPoints) || treeStages[0];
@@ -253,25 +253,25 @@ export default function ProgressPage({
   ];
 
   const weeklyChallenges = [
-    { id: "weekly_surah_kahf", title: "اقرأ سورة الكهف", current: progress?.completedChallengeIds?.includes("weekly_surah_kahf") ? 1 : 0, target: 1, reward: 50, action: () => onNavigateToReader(18, 1) },
-    { id: "read_500_ayahs", title: "تلاوة 500 آية", current: progress?.completedChallengeIds?.includes("read_500_ayahs") ? 500 : Math.min(500, progress?.totalVersesRead || 0), target: 500, reward: 200, action: openLastReadingPosition },
+    { id: "weekly_surah_kahf", titleAr: "اقرأ سورة الكهف", titleEn: "Read Surah Al-Kahf", current: progress?.completedChallengeIds?.includes("weekly_surah_kahf") ? 1 : 0, target: 1, reward: 50, action: () => onNavigateToReader(18, 1) },
+    { id: "read_500_ayahs", titleAr: "تلاوة 500 آية", titleEn: "Read 500 verses", current: progress?.completedChallengeIds?.includes("read_500_ayahs") ? 500 : Math.min(500, progress?.totalVersesRead || 0), target: 500, reward: 200, action: openLastReadingPosition },
   ];
 
   const badges = {
     reading: [
-      { id: 'read_1_day', title: 'قارئ اليوم', requirement: 'أكمل ورد يوم واحد', current: Math.min(1, progress?.currentStreak || 0), target: 1, icon: '📖' },
-      { id: 'read_7_days', title: 'سلسلة 7 أيام', requirement: 'حافظ على سلسلة القراءة ٧ أيام', current: Math.min(7, progress?.longestStreak || 0), target: 7, icon: '🔥' },
-      { id: 'first_surah', title: 'أول سورة', requirement: 'أكمل قراءة سورة كاملة', current: (progress?.completedSurahs || []).length > 0 ? 1 : 0, target: 1, icon: '🌟' },
-      { id: 'juz_complete', title: 'ختم جزء', requirement: 'أكمل قراءة جزء كامل (تقديري)', current: Math.min(30, Math.floor((progress?.totalVersesRead || 0) / 200)), target: 1, icon: '📚' },
-      { id: 'khatmah', title: 'ختم القرآن', requirement: 'أكمل ختمة كاملة للقرآن', current: khatmahPercentage, target: 100, icon: '👑' },
+      { id: 'read_1_day', titleAr: 'قارئ اليوم', titleEn: 'Reader of the Day', requirementAr: 'أكمل ورد يوم واحد', requirementEn: 'Complete one day of wird', current: Math.min(1, progress?.currentStreak || 0), target: 1, icon: '📖' },
+      { id: 'read_7_days', titleAr: 'سلسلة 7 أيام', titleEn: '7-Day Streak', requirementAr: 'حافظ على سلسلة القراءة ٧ أيام', requirementEn: 'Maintain a 7-day reading streak', current: Math.min(7, progress?.longestStreak || 0), target: 7, icon: '🔥' },
+      { id: 'first_surah', titleAr: 'أول سورة', titleEn: 'First Surah', requirementAr: 'أكمل قراءة سورة كاملة', requirementEn: 'Complete one full surah', current: (progress?.completedSurahs || []).length > 0 ? 1 : 0, target: 1, icon: '🌟' },
+      { id: 'juz_complete', titleAr: 'ختم جزء', titleEn: 'Juz Completed', requirementAr: 'أكمل قراءة جزء كامل (تقديري)', requirementEn: 'Complete one juz (estimated)', current: Math.min(30, Math.floor((progress?.totalVersesRead || 0) / 200)), target: 1, icon: '📚' },
+      { id: 'khatmah', titleAr: 'ختم القرآن', titleEn: 'Quran Completion', requirementAr: 'أكمل ختمة كاملة للقرآن', requirementEn: 'Complete the Quran', current: khatmahPercentage, target: 100, icon: '👑' },
     ],
     reflection: [
-      { id: 'first_note', title: 'متدبر اليوم', requirement: 'دوّن أول خاطرة تدبر', current: todayNotesCount, target: 1, icon: '✍️' },
-      { id: 'active_reflector', title: 'متدبر نشط', requirement: 'دوّن ١٠ خواطر تدبر', current: notes.length, target: 10, icon: '✒️' },
+      { id: 'first_note', titleAr: 'متدبر اليوم', titleEn: 'Reflector of the Day', requirementAr: 'دوّن أول خاطرة تدبر', requirementEn: 'Write your first reflection', current: todayNotesCount, target: 1, icon: '✍️' },
+      { id: 'active_reflector', titleAr: 'متدبر نشط', titleEn: 'Active Reflector', requirementAr: 'دوّن ١٠ خواطر تدبر', requirementEn: 'Write 10 reflections', current: notes.length, target: 10, icon: '✒️' },
     ],
     memorization: [
-      { id: 'first_plan', title: 'حافظ الورد', requirement: 'أنشئ أول خطة حفظ', current: plans.length, target: 1, icon: '🌱' },
-      { id: 'mastered_plan', title: 'مراجع ثابت', requirement: 'أتقن مراجعة مقطع واحد', current: plans.filter(p => p.completed).length, target: 1, icon: '🎯' }
+      { id: 'first_plan', titleAr: 'حافظ الورد', titleEn: 'Wird Memorizer', requirementAr: 'أنشئ أول خطة حفظ', requirementEn: 'Create your first memorization plan', current: plans.length, target: 1, icon: '🌱' },
+      { id: 'mastered_plan', titleAr: 'مراجع ثابت', titleEn: 'Steady Reviewer', requirementAr: 'أتقن مراجعة مقطع واحد', requirementEn: 'Master one review segment', current: plans.filter(p => p.completed).length, target: 1, icon: '🎯' }
     ]
   };
 
@@ -816,7 +816,7 @@ export default function ProgressPage({
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">{language === "ar" ? "شجرة الإنجاز الإيمانية" : "Faith Achievement Tree"}</h3>
                 <p className="text-[10px] text-slate-400 mb-3">{language === "ar" ? "رصيد الأثر الكلي:" : "Total Impact Balance:"} {points} {language === "ar" ? "نقطة" : "pts"}</p>
                 <div className="text-7xl my-3 transition-transform duration-500 hover:scale-110">{currentTreeStage.icon}</div>
-                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">{language === "ar" ? "مستواك الحالي:" : "Current Level:"} {currentTreeStage.name}</p>
+                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">{language === "ar" ? "مستواك الحالي:" : "Current Level:"} {language === "ar" ? currentTreeStage.nameAr : currentTreeStage.nameEn}</p>
                 {nextTreeStage && (
                   <div className="max-w-xs mx-auto mt-2">
                     <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1">
@@ -853,8 +853,8 @@ export default function ProgressPage({
                             {isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-amber-600">{language === "ar" ? "قيد التقدم" : "In Progress"}</div>}
                             {!isEarned && !isInProgress && <div className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-500">{language === "ar" ? "لم يتحقق بعد" : "Not yet achieved"}</div>}
                           </div>
-                          <p className="font-bold text-xs text-slate-800 dark:text-slate-200 mt-2">{badge.title}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 h-5">{isEarned ? ' ' : badge.requirement}</p>
+                          <p className="font-bold text-xs text-slate-800 dark:text-slate-200 mt-2">{language === "ar" ? badge.titleAr : badge.titleEn}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 h-5">{isEarned ? ' ' : language === "ar" ? badge.requirementAr : badge.requirementEn}</p>
                           {isInProgress && (
                             <div className="w-full bg-slate-200 dark:bg-slate-800 h-1 rounded-full mt-1 overflow-hidden" dir="ltr">
                               <div className="bg-amber-500 h-full rounded-full" style={{ width: `${progressPercent}%` }} />
@@ -878,7 +878,7 @@ export default function ProgressPage({
                 return (
                   <div key={challenge.id} onClick={challenge.action} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer hover:border-emerald-300 transition">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-sm text-slate-800 dark:text-white">{challenge.title}</span>
+                      <span className="font-bold text-sm text-slate-800 dark:text-white">{language === "ar" ? challenge.titleAr : challenge.titleEn}</span>
                       {isCompleted ? (
                         <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> {language === "ar" ? "مكتمل" : "Completed"}</span>
                       ) : (

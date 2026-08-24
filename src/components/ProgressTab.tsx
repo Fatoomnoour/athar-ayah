@@ -6,7 +6,7 @@ import {
 import { ReadingProgress, User } from "../types";
 import { getReadingProgress, saveReadingProgress } from "../services/firestoreService";
 import { formatFirestoreDate } from "../utils/dateUtils";
-import { SURAH_LIST as SURAHS } from "../utils/quranUtils";
+import { SURAH_LIST as SURAHS, SURAH_VERSE_COUNTS } from "../utils/quranUtils";
 import { useLanguage } from "../i18n";
 
 interface ProgressTabProps {
@@ -122,20 +122,40 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
     }
   };
 
-  // Calculations for pretty cards
-  const totalQuranVerses = 6236;
-  const completedSurahsCount = progress?.completedSurahs?.length || 0;
-  const totalSurahsCount = 114;
-  const surahProgressPercentage = Math.round((completedSurahsCount / totalSurahsCount) * 100);
+  // Calculations use the same canonical metadata as the Quran reader.
+  const totalQuranVerses = SURAH_VERSE_COUNTS.reduce((total, count) => total + count, 0);
+  const completedSurahIds = progress?.completedSurahs ?? [];
+  const completedSurahsCount = completedSurahIds.length;
+  const totalSurahsCount = SURAHS.length;
+  const surahProgressPercentage = totalSurahsCount > 0
+    ? Math.round((completedSurahsCount / totalSurahsCount) * 100)
+    : 0;
 
-  // Estimate remaining days to complete the Quran based on goal
-  const remainingVerses = totalQuranVerses - (progress ? (SURAHS.filter(s => progress.completedSurahs.includes(s.id)).reduce((acc, s) => acc + s.verses, 0)) : 0);
-  const estimatedDaysToComplete = progress ? Math.round(remainingVerses / progress.dailyGoalVerses) : 623;
+  // Never divide by zero or render NaN/Infinity when there is no saved goal.
+  const completedVerses = completedSurahIds.reduce((total, surahId) => {
+    const surah = SURAHS.find((item) => item.id === surahId);
+    return total + (surah?.verses ?? 0);
+  }, 0);
+  const remainingVerses = Math.max(0, totalQuranVerses - completedVerses);
+  const safeDailyGoal = Number.isFinite(progress?.dailyGoalVerses) && (progress?.dailyGoalVerses ?? 0) > 0
+    ? progress!.dailyGoalVerses
+    : 0;
+  const estimatedDaysToComplete = safeDailyGoal > 0 && remainingVerses > 0
+    ? Math.ceil(remainingVerses / safeDailyGoal)
+    : 0;
 
   return (
     <div className="space-y-6">
-      <button onClick={() => onNavigateToReader(progress?.lastSurahId, progress?.lastVerseNumber)} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-right flex items-center justify-between group">
-        <span className="font-bold text-emerald-700 dark:text-emerald-400">{t("continueFromLast")} {progress?.lastSurahName} {language === "ar" ? "آية" : "Verse"} {progress?.lastVerseNumber}</span>
+      <button
+        onClick={() => onNavigateToReader(progress?.lastSurahId, progress?.lastVerseNumber)}
+        disabled={!progress?.lastSurahId || !progress?.lastVerseNumber}
+        className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-right flex items-center justify-between group disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <span className="font-bold text-emerald-700 dark:text-emerald-400">
+          {progress?.lastSurahId && progress?.lastVerseNumber
+            ? `${t("continueFromLast")} ${progress.lastSurahName} ${t("verseUnit")} ${progress.lastVerseNumber}`
+            : t("noProgressData")}
+        </span>
         <ChevronLeft className="h-5 w-5 text-emerald-500 group-hover:translate-x-[-4px] transition-transform" />
       </button>
 
@@ -146,8 +166,10 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
           <div className="absolute left-[-20px] top-[-20px] opacity-10 font-serif text-8xl select-none">{t("quranWord")}</div>
           <div>
             <span className="text-emerald-100 text-xs font-semibold px-2 py-0.5 bg-emerald-700/50 rounded-full inline-block mb-2">{t("lastReadPosition")}</span>
-            <h3 className="text-2xl font-bold leading-tight">
-              {progress ? `${progress.lastSurahName} • ${language === "ar" ? "آية" : "Verse"} ${progress.lastVerseNumber}` : (language === "ar" ? "الفاتحة • آية 1" : "Al-Fatihah • Verse 1")}
+              <h3 className="text-2xl font-bold leading-tight">
+              {progress?.lastSurahId && progress?.lastVerseNumber
+                ? `${progress.lastSurahName} • ${t("verseUnit")} ${progress.lastVerseNumber}`
+                : t("noProgressData")}
             </h3>
             <p className="text-emerald-100 text-xs mt-1.5 flex items-center gap-1">
               <Compass className="h-3 w-3" /> {t("updateProgressMsg")}
@@ -177,7 +199,9 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-xs text-slate-500">
               <span>{t("estimatedDays")}</span>
-              <span className="font-semibold text-teal-600">~ {estimatedDaysToComplete} {t("daysUnit")}</span>
+                <span className="font-semibold text-teal-600">
+                  {estimatedDaysToComplete > 0 ? `~ ${estimatedDaysToComplete} ${t("daysUnit")}` : t("noProgressData")}
+                </span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div 
@@ -243,7 +267,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
               >
                 {SURAHS.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.id}. {s.name} ({s.verses} آية)
+                    {s.id}. {s.name} ({s.verses} {t("verseUnit")})
                   </option>
                 ))}
               </select>
@@ -251,7 +275,7 @@ export default function ProgressTab({ currentUser, onRefreshStats, onNavigateToR
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1" >
-                {t("reachedVerseLabel")} ({activeSurahMeta?.verses || 286})
+                {t("reachedVerseLabel")} ({activeSurahMeta?.verses || 286} {t("verseUnit")})
               </label>
               <input
                 type="number"
