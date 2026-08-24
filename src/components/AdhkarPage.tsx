@@ -18,9 +18,10 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
   const [showSource, setShowSource] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // The starter dataset currently has one item in several categories. Use one
-  // canonical carousel so Previous/Next always move to another verified item.
-  const currentItem = ADHKAR_LIST[currentIndex];
+  // Keep navigation scoped to the selected category so the counter and arrows
+  // describe the user's current collection, not an unrelated category.
+  const categoryItems = ADHKAR_LIST.filter((item) => item.category === activeCategory);
+  const currentItem = categoryItems[currentIndex];
 
   // Categories list
   const categories: { id: AdhkarCategory; nameAr: string; nameEn: string }[] = [
@@ -69,10 +70,9 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
 
       if (newCount === currentItem.repeatCount) {
         // Automatically move to next after a short delay if completed
-        if (currentIndex < ADHKAR_LIST.length - 1) {
+        if (currentIndex < categoryItems.length - 1) {
           setTimeout(() => {
             setCurrentIndex(prev => prev + 1);
-            setActiveCategory(ADHKAR_LIST[currentIndex + 1].category);
             setShowSource(false);
           }, 600);
         }
@@ -174,9 +174,8 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (currentIndex < ADHKAR_LIST.length - 1) {
+    if (currentIndex < categoryItems.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setActiveCategory(ADHKAR_LIST[currentIndex + 1].category);
       setShowSource(false);
     }
   };
@@ -185,7 +184,6 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
     e.stopPropagation();
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
-      setActiveCategory(ADHKAR_LIST[currentIndex - 1].category);
       setShowSource(false);
     }
   };
@@ -215,7 +213,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
                 const firstIndex = ADHKAR_LIST.findIndex((item) => item.category === cat.id);
                 if (firstIndex >= 0) {
                   setActiveCategory(cat.id);
-                  setCurrentIndex(firstIndex);
+                  setCurrentIndex(0);
                   setShowSource(false);
                 }
               }}
@@ -252,7 +250,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
           {/* Top Bar */}
           <div className="flex justify-between items-center mb-6">
             <span className="text-xs font-bold text-slate-400">
-              {currentIndex + 1} / {ADHKAR_LIST.length}
+              {currentIndex + 1} / {categoryItems.length}
             </span>
             <div className="flex gap-2">
               <button onClick={handleShare} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -344,7 +342,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
                 )}
                 <button
                   onClick={handleNext}
-                  disabled={currentIndex === ADHKAR_LIST.length - 1}
+                  disabled={currentIndex === categoryItems.length - 1}
                   aria-label={language === "ar" ? "الذكر التالي" : "Next dhikr"}
                   title={language === "ar" ? "الذكر التالي" : "Next dhikr"}
                   className="p-3 text-slate-400 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
