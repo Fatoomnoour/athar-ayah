@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../i18n";
 import { User } from "../types";
 import { ADHKAR_LIST, AdhkarCategory, AdhkarItem } from "../data/adhkar";
+import { getCategoryItems, getNextIndex, getPreviousIndex, getNavigationIcon } from "../services/adhkarNavigation";
 import { ChevronRight, ChevronLeft, RotateCcw, Share2, Heart, ExternalLink, Info, Check } from "lucide-react";
 
 interface AdhkarPageProps {
@@ -20,7 +21,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
 
   // Keep navigation scoped to the selected category so the counter and arrows
   // describe the user's current collection, not an unrelated category.
-  const categoryItems = ADHKAR_LIST.filter((item) => item.category === activeCategory);
+  const categoryItems = getCategoryItems(activeCategory);
   const currentItem = categoryItems[currentIndex];
 
   // Categories list
@@ -175,7 +176,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (currentIndex < categoryItems.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex(prev => getNextIndex(prev, categoryItems.length));
       setShowSource(false);
     }
   };
@@ -183,7 +184,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex(prev => getPreviousIndex(prev, categoryItems.length));
       setShowSource(false);
     }
   };
@@ -310,7 +311,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
                 title={language === "ar" ? "الذكر السابق" : "Previous dhikr"}
                 className="p-3 text-slate-400 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                {direction === 'rtl' ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
+                {getNavigationIcon(direction, "previous") === "right" ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
               </button>
 
               <div className="flex flex-col items-center gap-2">
@@ -347,7 +348,7 @@ export default function AdhkarPage({ currentUser, onShowToast }: AdhkarPageProps
                   title={language === "ar" ? "الذكر التالي" : "Next dhikr"}
                   className="p-3 text-slate-400 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  {direction === 'rtl' ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                  {getNavigationIcon(direction, "next") === "left" ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
                 </button>
               </div>
             </div>

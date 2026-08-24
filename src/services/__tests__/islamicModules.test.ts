@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ADHKAR_CATEGORY_MINIMUM, ADHKAR_LIST, AdhkarCategory } from "../../data/adhkar";
+import { getCategoryItems, getNavigationIcon, getNextIndex, getPreviousIndex } from "../adhkarNavigation";
 import { parseTimeString, getNextPrayer, formatTimeRemaining } from "../prayerTimesService";
 
 describe("Islamic Modules Tests", () => {
@@ -49,6 +50,98 @@ describe("Islamic Modules Tests", () => {
       const ids = ADHKAR_LIST.map(a => a.id);
       const uniqueIds = new Set(ids);
       expect(ids.length).toBe(uniqueIds.size);
+    });
+
+    it("should navigate through every category without crossing its boundaries", () => {
+      const categories: AdhkarCategory[] = [
+        "morning",
+        "evening",
+        "post_prayer",
+        "sleep",
+        "waking",
+        "home",
+        "travel",
+        "forgiveness",
+        "ruqyah",
+        "quranic",
+      ];
+
+      categories.forEach((category) => {
+        const items = getCategoryItems(category);
+        const visited = [0];
+
+        for (let index = 0; index < items.length - 1; index += 1) {
+          visited.push(getNextIndex(visited[visited.length - 1], items.length));
+        }
+
+        expect(visited).toEqual(items.map((_, index) => index));
+        expect(getNextIndex(items.length - 1, items.length)).toBe(items.length - 1);
+        expect(getPreviousIndex(0, items.length)).toBe(0);
+        expect(getNextIndex(999, items.length)).toBe(items.length - 1);
+        expect(getPreviousIndex(-999, items.length)).toBe(0);
+      });
+    });
+
+    it("should navigate back through every category without crossing its boundaries", () => {
+      const categories: AdhkarCategory[] = [
+        "morning",
+        "evening",
+        "post_prayer",
+        "sleep",
+        "waking",
+        "home",
+        "travel",
+        "forgiveness",
+        "ruqyah",
+        "quranic",
+      ];
+
+      categories.forEach((category) => {
+        const items = getCategoryItems(category);
+        const visited = [items.length - 1];
+
+        for (let index = items.length - 1; index > 0; index -= 1) {
+          visited.push(getPreviousIndex(visited[visited.length - 1], items.length));
+        }
+
+        expect(visited).toEqual(items.map((_, index) => items.length - 1 - index));
+      });
+    });
+
+    it("should keep semantic arrow direction correct in RTL and LTR", () => {
+      expect(getNavigationIcon("rtl", "previous")).toBe("right");
+      expect(getNavigationIcon("rtl", "next")).toBe("left");
+      expect(getNavigationIcon("ltr", "previous")).toBe("left");
+      expect(getNavigationIcon("ltr", "next")).toBe("right");
+    });
+
+    it("should make repeated boundary navigation safe for every category", () => {
+      const categories: AdhkarCategory[] = [
+        "morning",
+        "evening",
+        "post_prayer",
+        "sleep",
+        "waking",
+        "home",
+        "travel",
+        "forgiveness",
+        "ruqyah",
+        "quranic",
+      ];
+
+      categories.forEach((category) => {
+        const itemCount = getCategoryItems(category).length;
+        let nextIndex = 0;
+        let previousIndex = itemCount - 1;
+
+        for (let attempt = 0; attempt < 1000; attempt += 1) {
+          nextIndex = getNextIndex(nextIndex, itemCount);
+          previousIndex = getPreviousIndex(previousIndex, itemCount);
+        }
+
+        expect(nextIndex).toBe(itemCount - 1);
+        expect(previousIndex).toBe(0);
+      });
     });
   });
 

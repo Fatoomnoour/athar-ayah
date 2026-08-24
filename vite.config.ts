@@ -92,6 +92,41 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            const normalizedId = id.replaceAll('\\', '/');
+            if (!normalizedId.includes('/node_modules/')) return undefined;
+            if (normalizedId.includes('/react/') || normalizedId.includes('/react-dom/') || normalizedId.includes('/scheduler/')) {
+              return 'react-vendor';
+            }
+            if (normalizedId.includes('/firestore/') || normalizedId.includes('/@firebase/firestore/')) {
+              return 'firebase-firestore';
+            }
+            if (normalizedId.includes('/auth/') || normalizedId.includes('/@firebase/auth/')) {
+              return 'firebase-auth';
+            }
+            if (normalizedId.includes('/storage/') || normalizedId.includes('/@firebase/storage/')) {
+              return 'firebase-storage';
+            }
+            if (normalizedId.includes('/messaging/') || normalizedId.includes('/@firebase/messaging/')) {
+              return 'firebase-messaging';
+            }
+            if (normalizedId.includes('/firebase/') || normalizedId.includes('/@firebase/')) {
+              return 'firebase-core';
+            }
+            if (normalizedId.includes('/lucide-react/') || normalizedId.includes('/motion/') || normalizedId.includes('/canvas-confetti/')) {
+              return 'ui-vendor';
+            }
+            if (normalizedId.includes('/@google/genai/')) {
+              return 'ai-vendor';
+            }
+            return 'vendor';
+          },
+        },
+      },
+    },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
