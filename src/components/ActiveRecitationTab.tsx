@@ -2,6 +2,8 @@ import confetti from "canvas-confetti";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { User } from "../types";
 import { SURAH_LIST, SURAH_VERSE_COUNTS } from "../utils/quranUtils";
+import { matchRecitation, VerseMatchResult } from "../services/recitationMatchingService";
+import { completeRecitationSession, createRecitationSession, abandonRecitationSession } from "../services/recitationSessionService";
 import {
   BarChart,
   BookCheck,
@@ -62,16 +64,6 @@ const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null 
 
   return browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition || null;
 };
-
-const normalizeArabicSpeech = (value: string) => value
-  .normalize("NFKC")
-  .replace(/[\u064B-\u065F\u0670]/g, "")
-  .replace(/[إأآٱ]/g, "ا")
-  .replace(/ى/g, "ي")
-  .replace(/ة/g, "ه")
-  .replace(/[^\u0621-\u063A\u0641-\u064A\s]/g, " ")
-  .replace(/\s+/g, " ")
-  .trim();
 
 async function getSurahVerses(surahId: number): Promise<QuranVerse[]> {
   const response = await fetch(
@@ -174,6 +166,7 @@ export default function ActiveRecitationTab({
 }: ActiveRecitationTabProps) {
   const { language, direction, t } = useLanguage();
   const [surahId, setSurahId] = useState<number>(1);
+  const [surahQuery, setSurahQuery] = useState("");
   const [startVerse, setStartVerse] = useState<number | string>(1);
   const [endVerse, setEndVerse] = useState<number | string>(7);
   const [hideLevel, setHideLevel] = useState<RecitationLevel>("easy");
@@ -202,6 +195,10 @@ export default function ActiveRecitationTab({
   const [isListening, setIsListening] = useState(false);
   const [speechTranscript, setSpeechTranscript] = useState("");
   const [speechScore, setSpeechScore] = useState<number | null>(null);
+  const [speechMatchResult, setSpeechMatchResult] = useState<VerseMatchResult | null>(null);
+  const [sessionFeedback, setSessionFeedback] = useState<VerseMatchResult[]>([]);
+  const [recitationSessionId, setRecitationSessionId] = useState<string | null>(null);
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
@@ -209,6 +206,17 @@ export default function ActiveRecitationTab({
   const selectedSurahName = selectedSurahInfo?.name || "الفاتحة";
   const maxVerses =
     SURAH_LIST.find((s) => s.id === surahId)?.verses || SURAH_VERSE_COUNTS[surahId - 1] || 7;
+  const filteredSurahs = useMemo(() => {
+    const normalizedQuery = surahQuery.trim().toLowerCase();
+    if (!normalizedQuery) return SURAH_LIST;
+    return SURAH_LIST.filter((surah) =>
+      `${surah.id} ${surah.name} ${surah.type}`.toLowerCase().includes(normalizedQuery),
+    );
+  }, [surahQuery]);
+  const ayahNumbers = useMemo(
+    () => Array.from({ length: maxVerses }, (_, index) => index + 1),
+    [maxVerses],
+  );
 
   const currentVerse = sessionVerses[currentVerseIndex];
   const words = useMemo(
@@ -237,6 +245,7 @@ export default function ActiveRecitationTab({
   useEffect(() => {
     setSpeechTranscript("");
     setSpeechScore(null);
+    setSpeechMatchResult(null);
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -282,16 +291,17 @@ export default function ActiveRecitationTab({
     recognition.continuous = false;
     recognition.onresult = (event) => {
       const transcript = String(event.results[0]?.[0]?.transcript || "");
-      const expectedWords = normalizeArabicSpeech(currentVerse.text).split(" ").filter(Boolean);
-      const spokenWords = normalizeArabicSpeech(transcript).split(" ").filter(Boolean);
-      const spokenSet = new Set(spokenWords);
-      const matchedWords = expectedWords.filter((word) => spokenSet.has(word)).length;
-      const score = expectedWords.length > 0
-        ? Math.round((matchedWords / expectedWords.length) * 100)
-        : 0;
-
+            const matchResult = matchRecitation([currentVerse], transcript);
+      const verseResult = matchResult.verses[0] || null;
       setSpeechTranscript(transcript);
-      setSpeechScore(score);
+      setSpeechScore(matchResult.score);
+      setSpeechMatchResult(verseResult);
+      if (verseResult) {
+        setSessionFeedback((previous) => [
+          ...previous.filter((item) => item.verseNumber !== verseResult.verseNumber),
+          verseResult,
+        ]);
+      }
       setIsListening(false);
       recognitionRef.current = null;
     };
@@ -314,6 +324,7 @@ export default function ActiveRecitationTab({
       setIsListening(true);
       setSpeechTranscript("");
       setSpeechScore(null);
+      setSpeechMatchResult(null);
     } catch {
       recognitionRef.current = null;
       setIsListening(false);
@@ -332,6 +343,9 @@ export default function ActiveRecitationTab({
 
   const resetSession = () => {
     stopListening();
+    if (currentUser && recitationSessionId && isSessionActive) {
+      void abandonRecitationSession(currentUser.id, recitationSessionId);
+    }
     setIsSessionActive(false);
     setIsStartingSession(false);
     setSessionSummary(null);
@@ -343,6 +357,9 @@ export default function ActiveRecitationTab({
     setCompletedAyahNumbers(new Set());
     setTotalRevealedInSession(0);
     setRetryCount(0);
+    setSessionFeedback([]);
+    setRecitationSessionId(null);
+    setSessionStartedAt(null);
   };
 
   const startSession = async () => {
@@ -375,6 +392,18 @@ export default function ActiveRecitationTab({
       setTotalRevealedInSession(0);
       setRetryCount(0);
       setSessionSummary(null);
+      setSessionFeedback([]);
+      const savedSessionId = currentUser
+        ? await createRecitationSession(currentUser.id, {
+            surahNumber: safeSurahId,
+            surahName: selectedSurahName,
+            startAyah: safeStartVerse,
+            endAyah: safeEndVerse,
+            verseKeys: filteredVerses.map((verse) => `${safeSurahId}:${verse.number}`),
+          })
+        : null;
+      setRecitationSessionId(savedSessionId);
+      setSessionStartedAt(Date.now());
       resetCurrentAyahState();
       setIsSessionActive(true);
     } catch (error) {
@@ -528,6 +557,20 @@ export default function ActiveRecitationTab({
       surahName: selectedSurahName,
     });
 
+    if (currentUser && recitationSessionId) {
+      const expectedWords = sessionVerses.reduce((total, verse) => total + splitVerseWords(verse.text).length, 0);
+      const matchedWords = sessionFeedback.reduce((total, verse) => total + verse.matchedWords, 0);
+      void completeRecitationSession(currentUser.id, recitationSessionId, {
+        score: expectedWords ? Math.round((matchedWords / expectedWords) * 100) : 0,
+        matchedWords,
+        expectedWords,
+        mismatchCount: sessionFeedback.reduce((total, verse) => total + verse.possibleIssues.length, 0),
+        feedback: sessionFeedback,
+        durationSeconds: sessionStartedAt ? Math.max(0, Math.round((Date.now() - sessionStartedAt) / 1000)) : 0,
+        transcript: speechTranscript || undefined,
+      });
+    }
+
     setIsSessionActive(false);
   };
 
@@ -608,6 +651,31 @@ export default function ActiveRecitationTab({
               <span className="font-bold">{language === "ar" ? "النص الملتقط:" : "Captured text:"}</span> {speechTranscript}
               {speechScore !== null && (
                 <span className="font-bold text-blue-700 dark:text-blue-400"> — {language === "ar" ? `تطابق تقريبي ${speechScore}%` : `Approximate match ${speechScore}%`}</span>
+              )}
+              {speechMatchResult && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2 text-2xl font-quran" dir="rtl">
+                  {speechMatchResult.alignment.map((token, index) => (
+                    <span
+                      key={`${token.expected || token.spoken}-${index}`}
+                      className={token.status === "matched"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : token.status === "uncertain"
+                        ? "text-amber-600 dark:text-amber-400 underline decoration-dotted"
+                        : token.status === "missing"
+                        ? "text-rose-600 dark:text-rose-400 line-through"
+                        : "text-slate-400 dark:text-slate-500 line-through"}
+                      title={token.status === "matched"
+                        ? (language === "ar" ? "مطابق" : "Matched")
+                        : token.status === "uncertain"
+                        ? (language === "ar" ? "تطابق غير مؤكد" : "Uncertain match")
+                        : token.status === "missing"
+                        ? (language === "ar" ? "كلمة مفقودة" : "Missing word")
+                        : (language === "ar" ? "كلمة زائدة" : "Extra word")}
+                    >
+                      {token.expected || token.spoken}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -850,14 +918,21 @@ export default function ActiveRecitationTab({
             {language === "ar" ? "السورة" : "Surah"}
           </label>
 
+          <input
+            value={surahQuery}
+            onChange={(event) => setSurahQuery(event.target.value)}
+            placeholder={language === "ar" ? "ابحث باسم السورة أو رقمها" : "Search by surah name or number"}
+            aria-label={language === "ar" ? "بحث عن سورة" : "Search surah"}
+            className="w-full mb-2 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-slate-200"
+          />
           <select
             value={surahId}
             onChange={(event) => setSurahId(Number(event.target.value))}
             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-800 dark:text-slate-200"
           >
-            {SURAH_LIST.map((surah) => (
+            {filteredSurahs.map((surah) => (
               <option key={surah.id} value={surah.id}>
-                {surah.id}. {surah.name}
+                {surah.id}. {surah.name} — {surah.verses} {language === "ar" ? "آية" : "verses"}
               </option>
             ))}
           </select>
@@ -868,26 +943,17 @@ export default function ActiveRecitationTab({
             {language === "ar" ? "من الآية" : "From Verse"}
           </label>
 
-          <input
-            type="text"
-            inputMode="numeric"
+          <select
             value={startVerse}
             onChange={(event) => {
-              const value = event.target.value;
-
-              if (value === "" || /^[0-9]+$/.test(value)) {
-                setStartVerse(value === "" ? "" : Number(value));
-              }
-            }}
-            onBlur={(event) => {
-              const safeStart = clampNumber(event.target.value, 1, maxVerses);
-              const safeEnd = clampNumber(endVerse, safeStart, maxVerses);
-
-              setStartVerse(safeStart);
-              setEndVerse(safeEnd);
+              const nextStart = clampNumber(event.target.value, 1, maxVerses);
+              setStartVerse(nextStart);
+              setEndVerse((currentEnd) => clampNumber(currentEnd, nextStart, maxVerses));
             }}
             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-800 dark:text-slate-200"
-          />
+          >
+            {ayahNumbers.map((number) => <option key={number} value={number}>{number}</option>)}
+          </select>
         </div>
 
         <div>
@@ -895,26 +961,15 @@ export default function ActiveRecitationTab({
             {language === "ar" ? "إلى الآية" : "To Verse"}
           </label>
 
-          <input
-            type="text"
-            inputMode="numeric"
+          <select
             value={endVerse}
-            onChange={(event) => {
-              const value = event.target.value;
-
-              if (value === "" || /^[0-9]+$/.test(value)) {
-                setEndVerse(value === "" ? "" : Number(value));
-              }
-            }}
-            onBlur={(event) => {
-              const safeStart = clampNumber(startVerse, 1, maxVerses);
-              const safeEnd = clampNumber(event.target.value, safeStart, maxVerses);
-
-              setStartVerse(safeStart);
-              setEndVerse(safeEnd);
-            }}
+            onChange={(event) => setEndVerse(clampNumber(event.target.value, Number(startVerse) || 1, maxVerses))}
             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-800 dark:text-slate-200"
-          />
+          >
+            {ayahNumbers
+              .filter((number) => number >= (Number(startVerse) || 1))
+              .map((number) => <option key={number} value={number}>{number}</option>)}
+          </select>
         </div>
       </div>
 

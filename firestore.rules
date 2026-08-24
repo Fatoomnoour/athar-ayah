@@ -42,6 +42,31 @@ service cloud.firestore {
         allow read, write: if isSignedIn()
           && request.auth.uid == userId;
       }
+      match /recitationSessions/{sessionId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.status == 'started'
+          && request.resource.data.surahNumber is int
+          && request.resource.data.surahNumber >= 1
+          && request.resource.data.surahNumber <= 114
+          && request.resource.data.startAyah is int
+          && request.resource.data.endAyah is int
+          && request.resource.data.startAyah >= 1
+          && request.resource.data.endAyah >= request.resource.data.startAyah
+          && request.resource.data.endAyah - request.resource.data.startAyah <= 19
+          && request.resource.data.verseKeys is list;
+        allow update: if isSignedIn()
+          && request.auth.uid == userId
+          && resource.data.userId == userId
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.surahNumber == resource.data.surahNumber
+          && request.resource.data.startAyah == resource.data.startAyah
+          && request.resource.data.endAyah == resource.data.endAyah
+          && request.resource.data.status in ['started', 'completed', 'abandoned'];
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
     match /auditLogs/{logId} {
       allow read: if isSignedIn() && (request.auth.token.email == 'fatoomnoour@gmail.com' || request.auth.token.email == 'admin@athar-ayah.com');
