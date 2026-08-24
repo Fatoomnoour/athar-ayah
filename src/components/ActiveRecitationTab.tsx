@@ -581,8 +581,8 @@ export default function ActiveRecitationTab({
               </p>
               <p className="text-xs text-blue-600/80 dark:text-blue-300/80 mt-1">
                 {language === "ar"
-                  ? "يُستخدم الميكروفون أثناء الجلسة فقط ولا يتم حفظ التسجيل."
-                  : "The microphone is used during this session only; no recording is saved."}
+                  ? "يُستخدم الميكروفون أثناء الجلسة فقط. لا يحفظ التطبيق التسجيل أو يرفعه، وقد يعالج المتصفح الصوت وفق مزوّده."
+                  : "The microphone is used only during this session. The app does not save or upload recordings; the browser may process speech according to its provider."}
               </p>
             </div>
             <button
